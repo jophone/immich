@@ -48,6 +48,7 @@ DEFAULT_CATEGORIES = [
     "car", "document", "selfie", "group photo", "pet",
     "wedding", "birthday", "travel", "art", "abstract",
 ]
+SOFTMAX_TEMPERATURE = 100.0
 
 model_cache = ModelCache(revalidate=settings.model_ttl > 0)
 thread_pool: ThreadPoolExecutor | None = None
@@ -212,44 +213,14 @@ async def classify(
     min_score: float = Form(default=0.15),
     max_results: int = Form(default=5),
 ) -> Any:
-    category_list: list[str] = orjson.loads(categories) if categories is not None else DEFAULT_CATEGORIES
+    category_list = _parse_categories(categories)
 
     pil_image = await run(lambda: decode_pil(image))
 
-    # Reuse existing CLIP models from the cache
-    visual_model = await model_cache.get(model_name, ModelType.VISUAL, ModelTask.SEARCH, ttl=settings.model_ttl)
-    textual_model = await model_cache.get(model_name, ModelType.TEXTUAL, ModelTask.SEARCH, ttl=settings.model_ttl)
-    visual_model = await load(visual_model)
-    textual_model = await load(textual_model)
+    image_embedding = await _get_image_embedding(model_name, pil_image)
+    text_embeddings = await _get_text_embeddings(model_name, category_list)
 
-    # Compute image embedding
-    image_embedding_json: str = await run(visual_model.predict, pil_image)
-    image_embedding = np.array(orjson.loads(image_embedding_json), dtype=np.float32)
-
-    # Compute text embeddings for each category (cached to avoid redundant inference)
-    text_embeddings: list[NDArray[np.float32]] = []
-    for category in category_list:
-        cache_key = (model_name, category)
-        if cache_key in _text_embedding_cache:
-            text_embeddings.append(_text_embedding_cache[cache_key])
-        else:
-            prompt = f"a photo of {category}"
-            text_embedding_json: str = await run(textual_model.predict, prompt)
-            text_embedding = np.array(orjson.loads(text_embedding_json), dtype=np.float32)
-            _text_embedding_cache[cache_key] = text_embedding
-            text_embeddings.append(text_embedding)
-
-    text_embeddings_np = np.stack(text_embeddings)
-
-    # Cosine similarity → softmax with temperature → filter & sort
-    image_norm = image_embedding / np.linalg.norm(image_embedding)
-    text_norms = text_embeddings_np / np.linalg.norm(text_embeddings_np, axis=1, keepdims=True)
-    similarities = text_norms @ image_norm
-
-    temperature = 100.0
-    logits = similarities * temperature
-    exp_logits = np.exp(logits - np.max(logits))
-    probabilities = exp_logits / exp_logits.sum()
+    probabilities = _cosine_softmax(image_embedding, np.stack(text_embeddings))
 
     results = [
         {"categoryName": category, "confidence": float(probabilities[i])}
@@ -257,9 +228,57 @@ async def classify(
         if probabilities[i] >= min_score
     ]
     results.sort(key=lambda x: x["confidence"], reverse=True)
-    results = results[:max_results]
 
-    return ORJSONResponse({"classification": results})
+    return ORJSONResponse({"classification": results[:max_results]})
+
+
+def _parse_categories(categories: str | None) -> list[str]:
+    if categories is None:
+        return list(DEFAULT_CATEGORIES)
+    try:
+        parsed = orjson.loads(categories)
+    except orjson.JSONDecodeError as e:
+        raise HTTPException(422, f"Invalid categories JSON: {e}")
+    if not isinstance(parsed, list) or len(parsed) == 0:
+        raise HTTPException(422, "Categories must be a non-empty JSON array of strings.")
+    return [str(c) for c in parsed]
+
+
+async def _get_image_embedding(model_name: str, pil_image: Image) -> NDArray[np.float32]:
+    visual_model = await model_cache.get(model_name, ModelType.VISUAL, ModelTask.SEARCH, ttl=settings.model_ttl)
+    visual_model = await load(visual_model)
+    embedding_json: str = await run(visual_model.predict, pil_image)
+    return np.array(orjson.loads(embedding_json), dtype=np.float32)
+
+
+async def _get_text_embeddings(model_name: str, category_list: list[str]) -> list[NDArray[np.float32]]:
+    textual_model = await model_cache.get(model_name, ModelType.TEXTUAL, ModelTask.SEARCH, ttl=settings.model_ttl)
+    textual_model = await load(textual_model)
+
+    embeddings: list[NDArray[np.float32]] = []
+    for category in category_list:
+        cache_key = (model_name, category)
+        if cache_key in _text_embedding_cache:
+            embeddings.append(_text_embedding_cache[cache_key])
+        else:
+            prompt = f"a photo of {category}"
+            embedding_json: str = await run(textual_model.predict, prompt)
+            embedding = np.array(orjson.loads(embedding_json), dtype=np.float32)
+            _text_embedding_cache[cache_key] = embedding
+            embeddings.append(embedding)
+    return embeddings
+
+
+def _cosine_softmax(
+    image_embedding: NDArray[np.float32],
+    text_embeddings: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Cosine similarity between one image and N texts, then softmax with temperature scaling."""
+    image_norm = image_embedding / np.linalg.norm(image_embedding)
+    text_norms = text_embeddings / np.linalg.norm(text_embeddings, axis=1, keepdims=True)
+    logits = (text_norms @ image_norm) * SOFTMAX_TEMPERATURE
+    exp_logits = np.exp(logits - np.max(logits))
+    return exp_logits / exp_logits.sum()
 
 
 async def run_inference(payload: Image | str, entries: InferenceEntries) -> InferenceResponse:

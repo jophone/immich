@@ -28,6 +28,7 @@ import { AlbumUserAuditTable } from 'src/schema/tables/album-user-audit.table';
 import { AlbumUserTable } from 'src/schema/tables/album-user.table';
 import { AlbumTable } from 'src/schema/tables/album.table';
 import { ApiKeyTable } from 'src/schema/tables/api-key.table';
+import { AssetCategoryTable } from 'src/schema/tables/asset-category.table';
 import { AssetAuditTable } from 'src/schema/tables/asset-audit.table';
 import { AssetEditAuditTable } from 'src/schema/tables/asset-edit-audit.table';
 import { AssetEditTable } from 'src/schema/tables/asset-edit.table';
@@ -88,6 +89,7 @@ export class ImmichDatabase {
     AlbumTable,
     ApiKeyTable,
     AssetAuditTable,
+    AssetCategoryTable,
     AssetEditTable,
     AssetEditAuditTable,
     AssetFaceTable,
@@ -185,6 +187,7 @@ export interface DB {
 
   asset: AssetTable;
   asset_audit: AssetAuditTable;
+  asset_categories: AssetCategoryTable;
   asset_edit: AssetEditTable;
   asset_edit_audit: AssetEditAuditTable;
   asset_exif: AssetExifTable;
