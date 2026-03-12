@@ -10,9 +10,11 @@ from functools import partial
 from typing import Any, AsyncGenerator, Callable, Iterator
 from zipfile import BadZipFile
 
+import numpy as np
 import orjson
 from fastapi import Depends, FastAPI, File, Form, HTTPException
 from fastapi.responses import ORJSONResponse, PlainTextResponse
+from numpy.typing import NDArray
 from onnxruntime.capi.onnxruntime_pybind11_state import InvalidProtobuf, NoSuchFile
 from PIL.Image import Image
 from pydantic import ValidationError
@@ -38,11 +40,21 @@ from .schemas import (
 
 MultiPartParser.spool_max_size = 2**26  # spools to disk if payload is 64 MiB or larger
 
+DEFAULT_CATEGORIES = [
+    "landscape", "portrait", "food", "animal", "architecture",
+    "beach", "night", "city", "nature", "sport",
+    "flower", "sunset", "mountain", "water", "forest",
+    "indoor", "outdoor", "street", "garden", "snow",
+    "car", "document", "selfie", "group photo", "pet",
+    "wedding", "birthday", "travel", "art", "abstract",
+]
+
 model_cache = ModelCache(revalidate=settings.model_ttl > 0)
 thread_pool: ThreadPoolExecutor | None = None
 lock = threading.Lock()
 active_requests = 0
 last_called: float | None = None
+_text_embedding_cache: dict[tuple[str, str], NDArray[np.float32]] = {}
 
 
 @asynccontextmanager
@@ -190,6 +202,64 @@ async def predict(
         raise HTTPException(400, "Either image or text must be provided")
     response = await run_inference(inputs, entries)
     return ORJSONResponse(response)
+
+
+@app.post("/classify", dependencies=[Depends(update_state)])
+async def classify(
+    image: bytes = File(),
+    model_name: str = Form(default="ViT-B-32__openai"),
+    categories: str | None = Form(default=None),
+    min_score: float = Form(default=0.15),
+    max_results: int = Form(default=5),
+) -> Any:
+    category_list: list[str] = orjson.loads(categories) if categories is not None else DEFAULT_CATEGORIES
+
+    pil_image = await run(lambda: decode_pil(image))
+
+    # Reuse existing CLIP models from the cache
+    visual_model = await model_cache.get(model_name, ModelType.VISUAL, ModelTask.SEARCH, ttl=settings.model_ttl)
+    textual_model = await model_cache.get(model_name, ModelType.TEXTUAL, ModelTask.SEARCH, ttl=settings.model_ttl)
+    visual_model = await load(visual_model)
+    textual_model = await load(textual_model)
+
+    # Compute image embedding
+    image_embedding_json: str = await run(visual_model.predict, pil_image)
+    image_embedding = np.array(orjson.loads(image_embedding_json), dtype=np.float32)
+
+    # Compute text embeddings for each category (cached to avoid redundant inference)
+    text_embeddings: list[NDArray[np.float32]] = []
+    for category in category_list:
+        cache_key = (model_name, category)
+        if cache_key in _text_embedding_cache:
+            text_embeddings.append(_text_embedding_cache[cache_key])
+        else:
+            prompt = f"a photo of {category}"
+            text_embedding_json: str = await run(textual_model.predict, prompt)
+            text_embedding = np.array(orjson.loads(text_embedding_json), dtype=np.float32)
+            _text_embedding_cache[cache_key] = text_embedding
+            text_embeddings.append(text_embedding)
+
+    text_embeddings_np = np.stack(text_embeddings)
+
+    # Cosine similarity → softmax with temperature → filter & sort
+    image_norm = image_embedding / np.linalg.norm(image_embedding)
+    text_norms = text_embeddings_np / np.linalg.norm(text_embeddings_np, axis=1, keepdims=True)
+    similarities = text_norms @ image_norm
+
+    temperature = 100.0
+    logits = similarities * temperature
+    exp_logits = np.exp(logits - np.max(logits))
+    probabilities = exp_logits / exp_logits.sum()
+
+    results = [
+        {"categoryName": category, "confidence": float(probabilities[i])}
+        for i, category in enumerate(category_list)
+        if probabilities[i] >= min_score
+    ]
+    results.sort(key=lambda x: x["confidence"], reverse=True)
+    results = results[:max_results]
+
+    return ORJSONResponse({"classification": results})
 
 
 async def run_inference(payload: Image | str, entries: InferenceEntries) -> InferenceResponse:
