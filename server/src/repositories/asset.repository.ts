@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import {
-  ExpressionBuilder,
-  Insertable,
-  Kysely,
-  NotNull,
-  Selectable,
-  SelectQueryBuilder,
-  sql,
-  Updateable,
-  UpdateResult,
+    ExpressionBuilder,
+    Insertable,
+    Kysely,
+    NotNull,
+    Selectable,
+    SelectQueryBuilder,
+    sql,
+    Updateable,
+    UpdateResult,
 } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { isEmpty, isUndefined, omitBy } from 'lodash';
@@ -24,23 +24,23 @@ import { AssetJobStatusTable } from 'src/schema/tables/asset-job-status.table';
 import { AssetMetadataTable } from 'src/schema/tables/asset-metadata.table';
 import { AssetTable } from 'src/schema/tables/asset.table';
 import {
-  anyUuid,
-  asUuid,
-  hasPeople,
-  removeUndefinedKeys,
-  truncatedDate,
-  unnest,
-  withDefaultVisibility,
-  withEdits,
-  withExif,
-  withFaces,
-  withFacesAndPeople,
-  withFiles,
-  withLibrary,
-  withOwner,
-  withSmartSearch,
-  withTagId,
-  withTags,
+    anyUuid,
+    asUuid,
+    hasPeople,
+    removeUndefinedKeys,
+    truncatedDate,
+    unnest,
+    withDefaultVisibility,
+    withEdits,
+    withExif,
+    withFaces,
+    withFacesAndPeople,
+    withFiles,
+    withLibrary,
+    withOwner,
+    withSmartSearch,
+    withTagId,
+    withTags,
 } from 'src/utils/database';
 import { globToSqlPattern } from 'src/utils/misc';
 
@@ -295,6 +295,7 @@ export class AssetRepository {
         oc.column('assetId').doUpdateSet((eb) =>
           removeUndefinedKeys(
             {
+              classifiedAt: eb.ref('excluded.classifiedAt'),
               duplicatesDetectedAt: eb.ref('excluded.duplicatesDetectedAt'),
               facesRecognizedAt: eb.ref('excluded.facesRecognizedAt'),
               metadataExtractedAt: eb.ref('excluded.metadataExtractedAt'),

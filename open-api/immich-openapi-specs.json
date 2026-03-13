@@ -5026,6 +5026,114 @@
         "x-immich-state": "Stable"
       }
     },
+    "/categories": {
+      "get": {
+        "description": "Retrieve a summary of all categories with asset counts for the current user.",
+        "operationId": "getCategorySummaries",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategorySummaryResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get category summaries",
+        "tags": [
+          "Search"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          }
+        ],
+        "x-immich-permission": "asset.read",
+        "x-immich-state": "Beta"
+      }
+    },
+    "/categories/asset/{id}": {
+      "get": {
+        "description": "Retrieve classification categories for the specified asset.",
+        "operationId": "getAssetCategories",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssetCategoryResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get asset categories",
+        "tags": [
+          "Search"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          }
+        ],
+        "x-immich-permission": "asset.read",
+        "x-immich-state": "Beta"
+      }
+    },
     "/download/archive": {
       "post": {
         "description": "Download a ZIP archive containing the specified assets. The assets must have been previously requested via the \"getDownloadInfo\" endpoint.",
@@ -16033,6 +16141,32 @@
         ],
         "type": "object"
       },
+      "AssetCategoryResponseDto": {
+        "properties": {
+          "assetId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetId",
+          "categoryName",
+          "confidence",
+          "id"
+        ],
+        "type": "object"
+      },
       "AssetCopyDto": {
         "properties": {
           "albums": {
@@ -17409,6 +17543,21 @@
         },
         "type": "object"
       },
+      "CategorySummaryResponseDto": {
+        "properties": {
+          "categoryName": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "categoryName",
+          "count"
+        ],
+        "type": "object"
+      },
       "ChangePasswordDto": {
         "properties": {
           "invalidateSessions": {
@@ -17467,6 +17616,45 @@
         },
         "required": [
           "existingIds"
+        ],
+        "type": "object"
+      },
+      "ClassificationConfig": {
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "enabled": {
+            "description": "Whether the task is enabled",
+            "type": "boolean"
+          },
+          "maxResults": {
+            "description": "Maximum number of classification results",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minScore": {
+            "description": "Minimum confidence score for classification",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "modelName": {
+            "description": "Name of the model to use",
+            "type": "string"
+          }
+        },
+        "required": [
+          "categories",
+          "enabled",
+          "maxResults",
+          "minScore",
+          "modelName"
         ],
         "type": "object"
       },
@@ -18208,6 +18396,8 @@
           "VersionCheck",
           "OcrQueueAll",
           "Ocr",
+          "ClassificationQueueAll",
+          "Classification",
           "WorkflowRun"
         ],
         "type": "string"
@@ -20512,6 +20702,7 @@
           "notifications",
           "backupDatabase",
           "ocr",
+          "classification",
           "workflow",
           "editor"
         ],
@@ -20628,6 +20819,9 @@
           "backupDatabase": {
             "$ref": "#/components/schemas/QueueResponseLegacyDto"
           },
+          "classification": {
+            "$ref": "#/components/schemas/QueueResponseLegacyDto"
+          },
           "duplicateDetection": {
             "$ref": "#/components/schemas/QueueResponseLegacyDto"
           },
@@ -20680,6 +20874,7 @@
         "required": [
           "backgroundTask",
           "backupDatabase",
+          "classification",
           "duplicateDetection",
           "editor",
           "faceDetection",
@@ -24194,6 +24389,9 @@
           "backgroundTask": {
             "$ref": "#/components/schemas/JobSettingsDto"
           },
+          "classification": {
+            "$ref": "#/components/schemas/JobSettingsDto"
+          },
           "editor": {
             "$ref": "#/components/schemas/JobSettingsDto"
           },
@@ -24236,6 +24434,7 @@
         },
         "required": [
           "backgroundTask",
+          "classification",
           "editor",
           "faceDetection",
           "library",
@@ -24320,6 +24519,9 @@
           "availabilityChecks": {
             "$ref": "#/components/schemas/MachineLearningAvailabilityChecksDto"
           },
+          "classification": {
+            "$ref": "#/components/schemas/ClassificationConfig"
+          },
           "clip": {
             "$ref": "#/components/schemas/CLIPConfig"
           },
@@ -24348,6 +24550,7 @@
         },
         "required": [
           "availabilityChecks",
+          "classification",
           "clip",
           "duplicateDetection",
           "enabled",

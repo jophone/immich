@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
+import { ArrayMinSize, IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
 import { ValidateBoolean } from 'src/validation';
 
 export class TaskConfig {
@@ -80,4 +80,25 @@ export class OcrConfig extends ModelConfig {
     description: 'Minimum confidence score for text recognition',
   })
   minRecognitionScore!: number;
+}
+
+export class ClassificationConfig extends ModelConfig {
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  @Type(() => Number)
+  @ApiProperty({ type: 'number', format: 'double', description: 'Minimum confidence score for classification' })
+  minScore!: number;
+
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  @ApiProperty({ type: 'integer', description: 'Maximum number of classification results' })
+  maxResults!: number;
+
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @ApiProperty({ type: 'array', items: { type: 'string' }, minItems: 1 })
+  categories!: string[];
 }

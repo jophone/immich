@@ -26,7 +26,7 @@ export class CategoryRepository {
       .selectFrom('asset_categories')
       .innerJoin('asset', 'asset.id', 'asset_categories.assetId')
       .select('asset_categories.categoryName')
-      .select((eb) => eb.fn.count('asset_categories.id').as('count'))
+      .select((eb) => sql<number>`${eb.fn.count('asset_categories.id')}::int`.as('count'))
       .where('asset.ownerId', '=', userId)
       .where('asset.deletedAt', 'is', null)
       .where('asset.visibility', '!=', AssetVisibility.Hidden)

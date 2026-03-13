@@ -15,11 +15,17 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { SystemConfig } from 'src/config';
-import { CLIPConfig, DuplicateDetectionConfig, FacialRecognitionConfig, OcrConfig } from 'src/dtos/model-config.dto';
+import {
+  ClassificationConfig,
+  CLIPConfig,
+  DuplicateDetectionConfig,
+  FacialRecognitionConfig,
+  OcrConfig,
+} from 'src/dtos/model-config.dto';
 import {
   AudioCodec,
-  CQMode,
   Colorspace,
+  CQMode,
   ImageFormat,
   LogLevel,
   OAuthTokenEndpointAuthMethod,
@@ -345,6 +351,11 @@ class SystemConfigMachineLearningDto {
   @ValidateNested()
   @IsObject()
   ocr!: OcrConfig;
+
+  @Type(() => ClassificationConfig)
+  @ValidateNested()
+  @IsObject()
+  classification!: ClassificationConfig;
 }
 
 enum MapTheme {

@@ -360,3 +360,44 @@ CategorySummaryResponseDto  // categoryName, count (审查修正: number 类型,
 | Phase 8 | Web 前端 — 探索页面分类板块 | ⏳ |
 | Phase 9 | i18n 翻译键 | ⏳ |
 | Phase 10 | 单元测试 | ⏳ |
+
+---
+
+## Phase 11: 本地联动测试闭环验证记录（2026-03-13）
+
+### 测试目标
+
+验证“上传照片 → 缩略图生成 → 分类任务 → ML 推理 → 分类入库 → API 可读”的完整闭环在本地开发模式可稳定运行。
+
+### 测试方式与环境
+
+- 启动方式：`scripts/local-dev.sh up`（按要求本地启动，不使用 docker compose 编排服务）
+- 核心服务：PostgreSQL + Redis + Machine Learning + API + Web
+- 验证路径：
+  - 上传：`POST /api/assets`
+  - 分类读取：`GET /api/categories/asset/:id`、`GET /api/categories`
+  - 状态校验：`asset_job_status.classifiedAt`、`asset_categories` 行数
+
+### 测试过程中的关键问题与修复
+
+| # | 现象 | 根因 | 修复 | 结果 |
+|---|------|------|------|------|
+| 1 | 初次启动时 ML 就绪检查超时 | 进程启动阶段受终端信号干扰，ML `/ping` 间歇异常 | 采用分离/稳定方式重启本地进程，恢复健康检查 | ✅ |
+| 2 | API watch 编译失败（TypeScript） | 分类配置 DTO 接线不完整 + 分类汇总计数类型不匹配 | 补齐 `ClassificationConfig` 与 `system-config` 映射；`count` 强制为 `int` | ✅ |
+| 3 | 上传后有分类结果但任务报错、`classifiedAt` 长期为空 | `asset.repository.ts` 的 `upsertJobStatus()` 在仅更新 `classifiedAt` 时冲突更新集合为空，触发 SQL 语法错误 | 在冲突更新集合中加入 `classifiedAt: eb.ref('excluded.classifiedAt')` | ✅ |
+| 4 | 反复测试一直命中同一 `assetId`，导致误判修复无效 | 相同文件被去重复用历史资产记录（历史资产可能保留旧状态） | 改为“修改文件校验和后再上传”，强制生成新资产验证闭环 | ✅ |
+
+### 最终联动验证结果
+
+| 项目 | 结果 |
+|------|------|
+| 闭环结果 | ✅ PASS |
+| 验证资产 ID | `9418141e-ce45-4e2f-8f88-a4034344c769` |
+| 分类 API 返回数量 | `api_count=1` |
+| 数据库分类记录数 | `db_count=1` |
+| 分类完成时间戳 | `classified_at=2026-03-13 11:01:58.872+08` |
+| 分类示例 | `portrait (0.7543183)` |
+
+### 结论
+
+本次本地联动测试已确认分类闭环正常：新上传资产可自动触发分类任务，结果可写入 `asset_categories`，并正确回填 `asset_job_status.classifiedAt`，同时可通过分类 API 正常读取。
