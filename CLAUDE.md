@@ -27,6 +27,31 @@ make dev-update           # Rebuild and start dev containers
 make dev-down             # Stop dev environment
 ```
 
+### One-Click Local Startup
+
+```bash
+# Docker mode (preferred when OCI/cgroup permissions are available)
+./scripts/docker-dev.sh up
+./scripts/docker-dev.sh status
+./scripts/docker-dev.sh logs immich-server
+./scripts/docker-dev.sh down
+
+# Host mode fallback (non-Docker)
+./scripts/local-dev.sh up
+./scripts/local-dev.sh status
+./scripts/local-dev.sh down
+```
+
+`./scripts/docker-dev.sh` automatically handles common local conflicts:
+- Falls back to `runc` on hosts where default `crun` has OCI compatibility issues.
+- Cleans up conflicting `immich_*` containers before startup.
+- Frees required host ports (`3000`, `2283`, `3003`, `5432`) by stopping local services when enabled.
+
+Useful Docker script overrides:
+- `IMMICH_DOCKER_WAIT_ATTEMPTS=600` for slower first-time dependency installs.
+- `IMMICH_DOCKER_DOWN_LOCAL_DEV=0` to avoid auto-stopping host-mode services.
+- `IMMICH_DOCKER_STOP_HOST_POSTGRES=0` to avoid auto-stopping host PostgreSQL.
+
 ### Building
 
 ```bash
