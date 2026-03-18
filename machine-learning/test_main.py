@@ -709,18 +709,41 @@ class TestCLIP:
 
 class TestClassification:
     def test_yolo_classifier_predict(self, pil_image: Image.Image, tmp_path: Path, mocker: MockerFixture) -> None:
+        (tmp_path / "model.onnx").write_bytes(b"onnx")
         (tmp_path / "labels.txt").write_text("portrait\nlandscape\n")
         session = mocker.MagicMock()
         session.get_inputs.return_value = [SimpleNamespace(name="images", shape=[1, 3, 224, 224])]
         session.run.return_value = [np.array([[0.2, 0.8]], dtype=np.float32)]
         mocker.patch("immich_ml.models.classification.yolo.OrtSession", return_value=session)
-        mocker.patch.object(YoloClassificationModel, "download")
 
         classifier = YoloClassificationModel("YOLO26l-cls", cache_dir=tmp_path)
         result = classifier.predict(pil_image)
 
         assert result["portrait"] == pytest.approx(0.2)
         assert result["landscape"] == pytest.approx(0.8)
+        session.run.assert_called_once()
+
+    def test_yolo_classifier_reads_labels_from_onnx_metadata(
+        self,
+        pil_image: Image.Image,
+        tmp_path: Path,
+        mocker: MockerFixture,
+    ) -> None:
+        (tmp_path / "yolo26l-cls.onnx").write_bytes(b"onnx")
+
+        session = mocker.MagicMock()
+        session.get_inputs.return_value = [SimpleNamespace(name="images", shape=[1, 3, 224, 224])]
+        session.run.return_value = [np.array([[0.3, 0.7]], dtype=np.float32)]
+        session.session.get_modelmeta.return_value.custom_metadata_map = {
+            "names": "{0: 'portrait', 1: 'landscape'}",
+        }
+        mocker.patch("immich_ml.models.classification.yolo.OrtSession", return_value=session)
+
+        classifier = YoloClassificationModel("YOLO26l-cls", cache_dir=tmp_path)
+        result = classifier.predict(pil_image)
+
+        assert result["portrait"] == pytest.approx(0.3)
+        assert result["landscape"] == pytest.approx(0.7)
         session.run.assert_called_once()
 
     def test_to_probabilities_applies_softmax_for_logits(self) -> None:
@@ -757,6 +780,87 @@ class TestClassification:
 
         assert response.status_code == 200
         assert response.json() == {"classification": [{"categoryName": "portrait", "confidence": 0.91}]}
+
+    def test_classify_endpoint_yolo_ignores_categories(
+        self,
+        deployed_app: TestClient,
+        pil_image: Image.Image,
+        mocker: MockerFixture,
+    ) -> None:
+        async def mock_scores(model_name: str, image: Image.Image) -> dict[str, float]:
+            assert model_name == "YOLO26l-cls"
+            assert image.size == pil_image.size
+            return {"Egyptian_cat": 0.91, "tabby": 0.3, "lynx": 0.1}
+
+        mocker.patch("immich_ml.main._get_classification_scores", side_effect=mock_scores)
+        image_bytes = BytesIO()
+        pil_image.save(image_bytes, format="JPEG")
+
+        response = deployed_app.post(
+            "/classify",
+            files={"image": ("test.jpg", image_bytes.getvalue(), "image/jpeg")},
+            data={
+                "model_name": "YOLO26l-cls",
+                "categories": json.dumps(["portrait", "landscape", "food"]),
+                "min_score": "0.2",
+                "max_results": "5",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "classification": [
+                {"categoryName": "Egyptian_cat", "confidence": 0.91},
+                {"categoryName": "tabby", "confidence": 0.3},
+            ],
+        }
+
+    def test_classify_endpoint_uses_clip_pipeline(
+        self,
+        deployed_app: TestClient,
+        pil_image: Image.Image,
+        mocker: MockerFixture,
+    ) -> None:
+        async def mock_image_embedding(model_name: str, image: Image.Image):
+            assert model_name == "ViT-B-32__openai"
+            assert image.size == pil_image.size
+            return np.array([1.0, 0.0], dtype=np.float32)
+
+        async def mock_text_embeddings(model_name: str, categories: list[str]):
+            assert model_name == "ViT-B-32__openai"
+            assert categories == ["landscape", "portrait"]
+            return [
+                np.array([1.0, 0.0], dtype=np.float32),
+                np.array([0.0, 1.0], dtype=np.float32),
+            ]
+
+        mocker.patch(
+            "immich_ml.main._get_classification_scores",
+            side_effect=AssertionError("YOLO classification path should not be used for CLIP models"),
+        )
+        mocker.patch("immich_ml.main._get_image_embedding", side_effect=mock_image_embedding)
+        mocker.patch("immich_ml.main._get_text_embeddings", side_effect=mock_text_embeddings)
+        mocker.patch("immich_ml.main._cosine_softmax", return_value=np.array([0.8, 0.2], dtype=np.float32))
+
+        image_bytes = BytesIO()
+        pil_image.save(image_bytes, format="JPEG")
+
+        response = deployed_app.post(
+            "/classify",
+            files={"image": ("test.jpg", image_bytes.getvalue(), "image/jpeg")},
+            data={
+                "model_name": "ViT-B-32__openai",
+                "categories": json.dumps(["landscape", "portrait"]),
+                "min_score": "0.1",
+                "max_results": "5",
+            },
+        )
+
+        assert response.status_code == 200
+        classification = response.json()["classification"]
+        assert [item["categoryName"] for item in classification] == ["landscape", "portrait"]
+        assert classification[0]["confidence"] == pytest.approx(0.8)
+        assert classification[1]["confidence"] == pytest.approx(0.2)
 
     def test_classify_endpoint_rejects_invalid_categories(
         self,

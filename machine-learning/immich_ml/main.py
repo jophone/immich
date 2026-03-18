@@ -213,15 +213,17 @@ async def classify(
     image: bytes = File(),
     model_name: str = Form(default="YOLO26l-cls"),
     categories: str | None = Form(default=None),
-    min_score: float = Form(default=0.15),
+    min_score: float = Form(default=0.1),
     max_results: int = Form(default=5),
 ) -> Any:
     category_list = _parse_categories(categories)
 
     pil_image = await run(lambda: decode_pil(image))
-    label_scores = await _get_classification_scores(model_name, pil_image)
-
-    results = _filter_classification_results(label_scores, category_list, min_score)
+    if _is_yolo_classification_model(model_name):
+        label_scores = await _get_classification_scores(model_name, pil_image)
+        results = _filter_yolo_classification_results(label_scores, min_score)
+    else:
+        results = await _classify_with_clip(model_name, pil_image, category_list, min_score)
     results.sort(key=lambda x: x["confidence"], reverse=True)
 
     return ORJSONResponse({"classification": results[:max_results]})
@@ -245,6 +247,28 @@ async def _get_classification_scores(model_name: str, pil_image: Image) -> dict[
     return await run(classifier.predict, pil_image)
 
 
+def _is_yolo_classification_model(model_name: str) -> bool:
+    return "yolo" in clean_name(model_name).casefold()
+
+
+async def _classify_with_clip(
+    model_name: str,
+    pil_image: Image,
+    category_list: list[str],
+    min_score: float,
+) -> list[dict[str, float | str]]:
+    image_embedding = await _get_image_embedding(model_name, pil_image)
+    text_embeddings = await _get_text_embeddings(model_name, category_list)
+
+    probabilities = _cosine_softmax(image_embedding, np.stack(text_embeddings))
+
+    return [
+        {"categoryName": category, "confidence": float(probabilities[i])}
+        for i, category in enumerate(category_list)
+        if probabilities[i] >= min_score
+    ]
+
+
 def _get_classification_model(model_name: str) -> YoloClassificationModel:
     cache_key = clean_name(model_name)
     with lock:
@@ -253,22 +277,16 @@ def _get_classification_model(model_name: str) -> YoloClassificationModel:
         return classification_model_cache[cache_key]
 
 
-def _filter_classification_results(
+def _filter_yolo_classification_results(
     label_scores: dict[str, float],
-    category_list: list[str],
     min_score: float,
 ) -> list[dict[str, float | str]]:
-    normalized_scores = {_normalize_category(label): score for label, score in label_scores.items()}
     results: list[dict[str, float | str]] = []
-    for category in category_list:
-        score = normalized_scores.get(_normalize_category(category))
-        if score is not None and score >= min_score:
-            results.append({"categoryName": category, "confidence": float(score)})
+    for label, score in label_scores.items():
+        if score < min_score:
+            continue
+        results.append({"categoryName": label, "confidence": float(score)})
     return results
-
-
-def _normalize_category(category: str) -> str:
-    return category.strip().casefold()
 
 
 async def _get_image_embedding(model_name: str, pil_image: Image) -> NDArray[np.float32]:

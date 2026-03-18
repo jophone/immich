@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ExifDateTime, exiftool, WriteTags } from 'exiftool-vendored';
 import ffmpeg, { FfprobeData } from 'fluent-ffmpeg';
+import decodeHeic from 'heic-decode';
 import { Duration } from 'luxon';
 import fs from 'node:fs/promises';
+import { extname } from 'node:path';
 import { Writable } from 'node:stream';
 import sharp from 'sharp';
 import { ORIENTATION_TO_SHARP_ROTATION } from 'src/constants';
@@ -11,13 +13,13 @@ import { AssetEditActionItem } from 'src/dtos/editing.dto';
 import { Colorspace, LogLevel, RawExtractedFormat } from 'src/enum';
 import { LoggingRepository } from 'src/repositories/logging.repository';
 import {
-  DecodeToBufferOptions,
-  GenerateThumbhashOptions,
-  GenerateThumbnailOptions,
-  ImageDimensions,
-  ProbeOptions,
-  TranscodeCommand,
-  VideoInfo,
+    DecodeToBufferOptions,
+    GenerateThumbhashOptions,
+    GenerateThumbnailOptions,
+    ImageDimensions,
+    ProbeOptions,
+    TranscodeCommand,
+    VideoInfo,
 } from 'src/types';
 import { handlePromiseError } from 'src/utils/misc';
 import { createAffineMatrix } from 'src/utils/transform';
@@ -28,6 +30,9 @@ const probe = (input: string, options: string[]): Promise<FfprobeData> =>
   );
 sharp.concurrency(0);
 sharp.cache({ files: 0 });
+
+const HEIF_EXTENSIONS = new Set(['.heic', '.heif', '.hif']);
+const HEIF_FILE_TYPE_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'];
 
 type ProgressEvent = {
   frames: number;
@@ -141,8 +146,56 @@ export class MediaRepository {
   }
 
   async decodeImage(input: string | Buffer, options: DecodeToBufferOptions) {
-    const pipeline = await this.getImageDecodingPipeline(input, options);
-    return pipeline.raw().toBuffer({ resolveWithObject: true });
+    try {
+      const pipeline = await this.getImageDecodingPipeline(input, options);
+      return await pipeline.raw().toBuffer({ resolveWithObject: true });
+    } catch (error) {
+      return this.decodeHeifImage(input, options, error);
+    }
+  }
+
+  private async decodeHeifImage(input: string | Buffer, options: DecodeToBufferOptions, originalError: unknown) {
+    if (options.raw || !this.isHeifInput(input)) {
+      throw originalError;
+    }
+
+    try {
+      const heifBuffer = typeof input === 'string' ? await fs.readFile(input) : input;
+      const image = await decodeHeic({ buffer: heifBuffer as unknown as ArrayBufferLike });
+      const imageData = this.toBuffer(image.data);
+
+      let pipeline = sharp(imageData, {
+        limitInputPixels: false,
+        raw: { width: image.width, height: image.height, channels: 4 },
+        unlimited: true,
+      })
+        .pipelineColorspace(options.colorspace === Colorspace.Srgb ? 'srgb' : 'rgb16')
+        .withIccProfile(options.colorspace);
+
+      pipeline = this.applyOrientation(pipeline, options.orientation);
+
+      if (options.edits && options.edits.length > 0) {
+        pipeline = await this.applyEdits(pipeline, options.edits);
+      }
+
+      if (options.size !== undefined) {
+        pipeline = pipeline.resize(options.size, options.size, { fit: 'outside', withoutEnlargement: true });
+      }
+
+      this.logger.debug(`Decoded HEIF image with heic-decode fallback${typeof input === 'string' ? `: ${input}` : ''}`);
+      return await pipeline.raw().toBuffer({ resolveWithObject: true });
+    } catch (fallbackError: any) {
+      this.logger.debug(`HEIF fallback decode failed: ${fallbackError.message}`);
+      throw originalError;
+    }
+  }
+
+  private toBuffer(data: ArrayBufferLike | ArrayBufferView): Buffer {
+    if (ArrayBuffer.isView(data)) {
+      return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+    }
+
+    return Buffer.from(data);
   }
 
   private async applyEdits(pipeline: sharp.Sharp, edits: AssetEditActionItem[]): Promise<sharp.Sharp> {
@@ -182,6 +235,29 @@ export class MediaRepository {
     await decoded.toFile(output);
   }
 
+  private applyOrientation(pipeline: sharp.Sharp, orientation?: DecodeToBufferOptions['orientation']) {
+    const { angle, flip, flop } = orientation ? ORIENTATION_TO_SHARP_ROTATION[orientation] : {};
+    pipeline = pipeline.rotate(angle);
+    if (flip) {
+      pipeline = pipeline.flip();
+    }
+
+    if (flop) {
+      pipeline = pipeline.flop();
+    }
+
+    return pipeline;
+  }
+
+  private isHeifInput(input: string | Buffer) {
+    if (typeof input === 'string') {
+      return HEIF_EXTENSIONS.has(extname(input).toLowerCase());
+    }
+
+    const header = input.subarray(8, 64).toString('ascii');
+    return HEIF_FILE_TYPE_BRANDS.some((brand) => header.includes(brand));
+  }
+
   private async getImageDecodingPipeline(input: string | Buffer, options: DecodeToBufferOptions) {
     let pipeline = sharp(input, {
       // some invalid images can still be processed by sharp, but we want to fail on them by default to avoid crashes
@@ -194,15 +270,7 @@ export class MediaRepository {
       .withIccProfile(options.colorspace);
 
     if (!options.raw) {
-      const { angle, flip, flop } = options.orientation ? ORIENTATION_TO_SHARP_ROTATION[options.orientation] : {};
-      pipeline = pipeline.rotate(angle);
-      if (flip) {
-        pipeline = pipeline.flip();
-      }
-
-      if (flop) {
-        pipeline = pipeline.flop();
-      }
+      pipeline = this.applyOrientation(pipeline, options.orientation);
     }
 
     if (options.edits && options.edits.length > 0) {

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import ast
 from functools import cached_property
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import orjson
-from huggingface_hub import snapshot_download
 from numpy.typing import NDArray
 from PIL import Image
 
@@ -24,31 +24,24 @@ class YoloClassificationModel:
     ) -> None:
         self.model_name = clean_name(model_name)
         self.cache_dir = Path(cache_dir) if cache_dir is not None else self._cache_dir_default
-        self.session = session
+        self.session: OrtSession | None = session
         self.loaded = session is not None
         self.input_name = "images"
         self.input_height = 224
         self.input_width = 224
 
-    def download(self) -> None:
-        if self.model_path.is_file():
-            return
-        log.info(f"Downloading classification model '{self.model_name}' to {self.cache_dir}. This may take a while.")
-        snapshot_download(
-            f"immich-app/{self.model_name}",
-            cache_dir=self.cache_dir,
-            local_dir=self.cache_dir,
-            ignore_patterns=["*.armnn", "*.rknn"],
-        )
-
     def load(self) -> None:
         if self.loaded:
             return
 
-        self.download()
-        log.info(f"Loading classification model '{self.model_name}' to memory")
-        self.session = OrtSession(self.model_path)
-        input_node = self.session.get_inputs()[0]
+        model_path = self.model_path
+        if not model_path.is_file():
+            raise FileNotFoundError(f"Classification model file not found: '{model_path}'")
+
+        log.info(f"Loading local classification model '{self.model_name}' from {model_path}")
+        session = OrtSession(model_path)
+        input_node = session.get_inputs()[0]
+        self.session = session
         self.input_name = input_node.name or "images"
         _, _, height, width = _normalize_input_shape(input_node.shape)
         self.input_height = height
@@ -57,10 +50,13 @@ class YoloClassificationModel:
 
     def predict(self, inputs: Image.Image | bytes) -> dict[str, float]:
         self.load()
+        session = self.session
+        if session is None:
+            raise RuntimeError(f"Classification model '{self.model_name}' is not loaded")
 
         image = decode_pil(inputs)
         tensor = self._preprocess(image)
-        outputs = self.session.run(None, {self.input_name: tensor})
+        outputs = session.run(None, {self.input_name: tensor})
         probabilities = _to_probabilities(outputs[0])
 
         if probabilities.shape[0] != len(self.labels):
@@ -72,39 +68,87 @@ class YoloClassificationModel:
 
     @property
     def model_path(self) -> Path:
-        return self.cache_dir / "model.onnx"
+        candidates = [
+            self.cache_dir / "model.onnx",
+            self.cache_dir / f"{self.model_name.casefold()}.onnx",
+        ]
+
+        for candidate in candidates:
+            if candidate.is_file():
+                return candidate
+
+        onnx_files = sorted(self.cache_dir.glob("*.onnx")) if self.cache_dir.is_dir() else []
+        if len(onnx_files) == 1:
+            return onnx_files[0]
+
+        return candidates[0]
 
     @property
     def _cache_dir_default(self) -> Path:
-        return settings.cache_folder / "classification" / self.model_name
+        model_slug = self.model_name.casefold()
+        model_subdir = "yolo26-l" if model_slug == "yolo26l-cls" else model_slug
+        repo_root = Path(__file__).resolve().parents[4]
+        candidates = [
+            repo_root / "model-cache" / model_subdir,
+            settings.cache_folder / model_subdir,
+            settings.cache_folder / "classification" / self.model_name,
+        ]
+
+        for candidate in candidates:
+            if candidate.is_dir():
+                return candidate
+
+        return candidates[0]
 
     @cached_property
     def labels(self) -> list[str]:
         labels_path = self._resolve_labels_path()
-        suffix = labels_path.suffix.lower()
+        if labels_path is not None:
+            suffix = labels_path.suffix.lower()
 
-        if suffix == ".json":
-            parsed = orjson.loads(labels_path.read_bytes())
-            if isinstance(parsed, list):
-                return [str(label) for label in parsed]
-            if isinstance(parsed, dict):
-                try:
-                    items = sorted(parsed.items(), key=lambda item: int(item[0]))
-                except (TypeError, ValueError):
-                    items = sorted(parsed.items(), key=lambda item: str(item[0]))
-                return [str(label) for _, label in items]
-            raise ValueError(f"Unsupported labels.json format for model '{self.model_name}'")
+            if suffix == ".json":
+                parsed = orjson.loads(labels_path.read_bytes())
+                return _parse_labels_map(parsed, self.model_name)
 
-        labels = [line.strip() for line in labels_path.read_text().splitlines() if line.strip()]
-        if not labels:
-            raise ValueError(f"Labels file is empty for model '{self.model_name}'")
-        return labels
+            labels = [line.strip() for line in labels_path.read_text().splitlines() if line.strip()]
+            if not labels:
+                raise ValueError(f"Labels file is empty for model '{self.model_name}'")
+            return labels
 
-    def _resolve_labels_path(self) -> Path:
+        labels_from_metadata = self._get_labels_from_onnx_metadata()
+        if labels_from_metadata:
+            return labels_from_metadata
+
+        raise FileNotFoundError(
+            f"Labels not found for classification model '{self.model_name}'. "
+            "Provide labels.txt/labels.json or ONNX metadata field 'names'."
+        )
+
+    def _resolve_labels_path(self) -> Path | None:
         for candidate in (self.cache_dir / "labels.txt", self.cache_dir / "labels.json"):
             if candidate.is_file():
                 return candidate
-        raise FileNotFoundError(f"Labels file not found for classification model '{self.model_name}'")
+        return None
+
+    def _get_labels_from_onnx_metadata(self) -> list[str]:
+        session = self.session
+        if session is None:
+            return []
+
+        names_value = session.session.get_modelmeta().custom_metadata_map.get("names")
+        if not names_value:
+            return []
+
+        parsed: Any
+        try:
+            parsed = orjson.loads(names_value)
+        except orjson.JSONDecodeError:
+            try:
+                parsed = ast.literal_eval(names_value)
+            except (ValueError, SyntaxError):
+                return []
+
+        return _parse_labels_map(parsed, self.model_name)
 
     def _preprocess(self, image: Image.Image) -> NDArray[np.float32]:
         image = image.resize((self.input_width, self.input_height), resample=Image.Resampling.BILINEAR)
@@ -141,3 +185,15 @@ def _to_probabilities(output: NDArray[np.float32]) -> NDArray[np.float32]:
     shifted = logits - np.max(logits)
     exp_logits = np.exp(shifted)
     return exp_logits / np.sum(exp_logits)
+
+
+def _parse_labels_map(parsed: Any, model_name: str) -> list[str]:
+    if isinstance(parsed, list):
+        return [str(label) for label in parsed]
+    if isinstance(parsed, dict):
+        try:
+            items = sorted(parsed.items(), key=lambda item: int(item[0]))
+        except (TypeError, ValueError):
+            items = sorted(parsed.items(), key=lambda item: str(item[0]))
+        return [str(label) for _, label in items]
+    raise ValueError(f"Unsupported labels format for model '{model_name}'")

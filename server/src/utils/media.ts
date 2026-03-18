@@ -2,14 +2,14 @@ import { AUDIO_ENCODER } from 'src/constants';
 import { SystemConfigFFmpegDto } from 'src/dtos/system-config.dto';
 import { CQMode, ToneMapping, TranscodeHardwareAcceleration, TranscodeTarget, VideoCodec } from 'src/enum';
 import {
-  AudioStreamInfo,
-  BitrateDistribution,
-  TranscodeCommand,
-  VideoCodecHWConfig,
-  VideoCodecSWConfig,
-  VideoFormat,
-  VideoInterfaces,
-  VideoStreamInfo,
+    AudioStreamInfo,
+    BitrateDistribution,
+    TranscodeCommand,
+    VideoCodecHWConfig,
+    VideoCodecSWConfig,
+    VideoFormat,
+    VideoInterfaces,
+    VideoStreamInfo,
 } from 'src/types';
 
 export class BaseConfig implements VideoCodecSWConfig {
@@ -126,7 +126,7 @@ export class BaseConfig implements VideoCodecSWConfig {
       // Makes a second pass moving the moov atom to the
       // beginning of the file for improved playback speed.
       '-movflags faststart',
-      '-fps_mode passthrough',
+      '-vsync 0',
       // explicitly selects the video stream instead of leaving it up to FFmpeg
       `-map 0:${videoStream.index}`,
       // Strip metadata like capture date, camera, and GPS
@@ -420,7 +420,7 @@ export class ThumbnailConfig extends BaseConfig {
   }
 
   getBaseOutputOptions() {
-    return ['-fps_mode vfr', '-frames:v 1', '-update 1'];
+    return ['-vsync vfr', '-frames:v 1', '-update 1'];
   }
 
   getFilterOptions(videoStream: VideoStreamInfo): string[] {

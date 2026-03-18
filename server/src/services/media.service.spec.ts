@@ -3,21 +3,21 @@ import { SystemConfig } from 'src/config';
 import { Exif } from 'src/database';
 import { AssetEditAction } from 'src/dtos/editing.dto';
 import {
-  AssetFileType,
-  AssetPathType,
-  AssetStatus,
-  AssetType,
-  AssetVisibility,
-  AudioCodec,
-  Colorspace,
-  ExifOrientation,
-  ImageFormat,
-  JobName,
-  JobStatus,
-  RawExtractedFormat,
-  TranscodeHardwareAcceleration,
-  TranscodePolicy,
-  VideoCodec,
+    AssetFileType,
+    AssetPathType,
+    AssetStatus,
+    AssetType,
+    AssetVisibility,
+    AudioCodec,
+    Colorspace,
+    ExifOrientation,
+    ImageFormat,
+    JobName,
+    JobStatus,
+    RawExtractedFormat,
+    TranscodeHardwareAcceleration,
+    TranscodePolicy,
+    VideoCodec,
 } from 'src/enum';
 import { MediaService } from 'src/services/media.service';
 import { JobCounts, RawImageInfo } from 'src/types';
@@ -502,7 +502,7 @@ describe(MediaService.name, () => {
         expect.objectContaining({
           inputOptions: ['-skip_frame nointra', '-sws_flags accurate_rnd+full_chroma_int'],
           outputOptions: [
-            '-fps_mode vfr',
+            '-vsync vfr',
             '-frames:v 1',
             '-update 1',
             '-v verbose',
@@ -544,7 +544,7 @@ describe(MediaService.name, () => {
         expect.objectContaining({
           inputOptions: ['-skip_frame nointra', '-sws_flags accurate_rnd+full_chroma_int'],
           outputOptions: [
-            '-fps_mode vfr',
+            '-vsync vfr',
             '-frames:v 1',
             '-update 1',
             '-v verbose',
@@ -588,7 +588,7 @@ describe(MediaService.name, () => {
         expect.objectContaining({
           inputOptions: ['-skip_frame nointra', '-sws_flags accurate_rnd+full_chroma_int'],
           outputOptions: [
-            '-fps_mode vfr',
+            '-vsync vfr',
             '-frames:v 1',
             '-update 1',
             '-v verbose',
@@ -2483,7 +2483,7 @@ describe(MediaService.name, () => {
           outputOptions: expect.arrayContaining([
             '-c:v libsvtav1',
             '-movflags faststart',
-            '-fps_mode passthrough',
+            '-vsync 0',
             '-map 0:0',
             '-map 0:3',
             '-v verbose',
@@ -2648,7 +2648,7 @@ describe(MediaService.name, () => {
             `-c:v h264_nvenc`,
             '-c:a copy',
             '-movflags faststart',
-            '-fps_mode passthrough',
+            '-vsync 0',
             '-map 0:0',
             '-map 0:3',
             '-g 256',
@@ -2827,7 +2827,7 @@ describe(MediaService.name, () => {
             `-c:v h264_qsv`,
             '-c:a copy',
             '-movflags faststart',
-            '-fps_mode passthrough',
+            '-vsync 0',
             '-map 0:0',
             '-map 0:3',
             '-bf 7',
@@ -3051,7 +3051,7 @@ describe(MediaService.name, () => {
             `-c:v h264_vaapi`,
             '-c:a copy',
             '-movflags faststart',
-            '-fps_mode passthrough',
+            '-vsync 0',
             '-map 0:0',
             '-map 0:3',
             '-g 256',
@@ -3348,7 +3348,7 @@ describe(MediaService.name, () => {
             `-c:v h264_rkmpp`,
             '-c:a copy',
             '-movflags faststart',
-            '-fps_mode passthrough',
+            '-vsync 0',
             '-map 0:0',
             '-map 0:3',
             '-g 256',
