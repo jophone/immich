@@ -11,6 +11,8 @@
     personIds: SvelteSet<string>;
     tagIds: SvelteSet<string> | null;
     category?: string;
+    categoryL1?: string;
+    categoryL2?: string;
     location: SearchLocationFilter;
     camera: SearchCameraFilter;
     date: SearchDateFilter;
@@ -88,6 +90,8 @@
           : new SvelteSet(searchQuery.tagIds)
         : new SvelteSet(),
     category: searchQuery.category,
+    categoryL1: searchQuery.categoryL1,
+    categoryL2: searchQuery.categoryL2,
     location: {
       country: withNullAsUndefined(searchQuery.country),
       state: withNullAsUndefined(searchQuery.state),
@@ -124,6 +128,8 @@
       personIds: new SvelteSet(),
       tagIds: new SvelteSet(),
       category: undefined,
+      categoryL1: undefined,
+      categoryL2: undefined,
       location: {},
       camera: {},
       date: {},
@@ -147,7 +153,7 @@
 
     const query = filter.query || undefined;
 
-    let payload: SmartSearchDto | MetadataSearchDto = {
+    const payload: SmartSearchDto | MetadataSearchDto = {
       query: filter.queryType === 'smart' ? query : undefined,
       ocr: filter.queryType === 'ocr' ? query : undefined,
       originalFileName: filter.queryType === 'metadata' ? query : undefined,
@@ -166,6 +172,8 @@
       personIds: filter.personIds.size > 0 ? [...filter.personIds] : undefined,
       tagIds: filter.tagIds === null ? null : filter.tagIds.size > 0 ? [...filter.tagIds] : undefined,
       category: filter.category,
+      categoryL1: filter.categoryL1,
+      categoryL2: filter.categoryL2,
       type,
       rating: filter.rating,
     };
@@ -204,7 +212,11 @@
         <SearchTagsSection bind:selectedTags={filter.tagIds} />
 
         <!-- CATEGORIES -->
-        <SearchCategorySection bind:category={filter.category} />
+        <SearchCategorySection
+          bind:category={filter.category}
+          bind:categoryL1={filter.categoryL1}
+          bind:categoryL2={filter.categoryL2}
+        />
 
         <!-- LOCATION -->
         <SearchLocationSection bind:filters={filter.location} />

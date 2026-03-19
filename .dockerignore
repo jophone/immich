@@ -18,6 +18,7 @@ docker/
 !docker/scripts
 
 docs/
+!docs/ImageNet_Taxonomy.csv
 !docs/package.json
 !docs/package-lock.json
 

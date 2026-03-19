@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { JOBS_ASSET_PAGINATION_SIZE } from 'src/constants';
 import { OnJob } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
+import { CategorySummaryResponseDto } from 'src/dtos/category.dto';
 import { AssetVisibility, JobName, JobStatus, Permission, QueueName } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { JobItem, JobOf } from 'src/types';
+import { getCategoryHierarchy } from 'src/utils/category-taxonomy';
 import { isClassificationEnabled } from 'src/utils/misc';
 
 @Injectable()
@@ -91,6 +93,22 @@ export class ClassificationService extends BaseService {
   }
 
   async getCategorySummaries(auth: AuthDto) {
-    return this.categoryRepository.getDistinctCategories(auth.user.id);
+    const summaries = await this.categoryRepository.getDistinctCategories(auth.user.id);
+
+    return summaries.map<CategorySummaryResponseDto>((summary) => {
+      const hierarchy = getCategoryHierarchy(summary.categoryName);
+
+      return {
+        categoryName: summary.categoryName,
+        categoryNameZh: hierarchy.rawCategoryNameZh,
+        count: summary.count,
+        categoryL1Id: hierarchy.l1.id,
+        categoryL1NameZh: hierarchy.l1.nameZh,
+        categoryL1NameEn: hierarchy.l1.nameEn,
+        categoryL2Id: hierarchy.l2.id,
+        categoryL2NameZh: hierarchy.l2.nameZh,
+        categoryL2NameEn: hierarchy.l2.nameEn,
+      };
+    });
   }
 }

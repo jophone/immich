@@ -70,6 +70,11 @@ export interface SearchPathOptions {
 
 export interface SearchExifOptions {
   category?: string;
+  categoryL1?: string;
+  categoryL2?: string;
+  categoryNames?: string[];
+  categoryIncludeUnmapped?: boolean;
+  categoryKnownNames?: string[];
   city?: string | null;
   country?: string | null;
   lensModel?: string | null;

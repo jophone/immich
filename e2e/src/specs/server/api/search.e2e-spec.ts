@@ -7,6 +7,7 @@ import {
   updateAsset,
 } from '@immich/sdk';
 import { DateTime } from 'luxon';
+import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Socket } from 'socket.io-client';
@@ -392,6 +393,41 @@ describe('/search', () => {
         expect(body.assets.items).toHaveLength(assets.length);
       });
     }
+
+    it('should not return duplicate assets when category hierarchy matches multiple raw categories of the same asset', async () => {
+      const db = await utils.connectDatabase();
+      const firstCategoryId = randomUUID();
+      const secondCategoryId = randomUUID();
+
+      try {
+        await db.query(
+          `
+            INSERT INTO "asset_categories" ("id", "assetId", "categoryName", "confidence")
+            VALUES
+              ($1, $2, $3, $4),
+              ($5, $2, $6, $7)
+          `,
+          [firstCategoryId, assetCyclamen.id, 'tabby_cat', 0.95, secondCategoryId, 'tiger_cat', 0.91],
+        );
+
+        const { status, body } = await request(app)
+          .post('/search/metadata')
+          .send({ id: assetCyclamen.id, categoryL2: 'animals_domestic_cats' })
+          .set('Authorization', `Bearer ${admin.accessToken}`);
+
+        expect(status).toBe(200);
+        expect(body.assets.items).toHaveLength(1);
+        expect(body.assets.items[0]).toEqual(expect.objectContaining({ id: assetCyclamen.id }));
+
+        const uniqueAssetIds = new Set(body.assets.items.map((item: AssetResponseDto) => item.id));
+        expect(uniqueAssetIds.size).toBe(body.assets.items.length);
+      } finally {
+        await db.query(
+          `DELETE FROM "asset_categories" WHERE "id" = $1 OR "id" = $2`,
+          [firstCategoryId, secondCategoryId],
+        );
+      }
+    });
   });
 
   describe('POST /search/random', () => {

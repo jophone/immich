@@ -83,6 +83,7 @@ COPY --from=web /usr/src/app/web/build /build/www
 COPY --from=cli /output/cli-pruned ./cli
 COPY --from=plugins /usr/src/app/plugins/dist /build/corePlugin/dist
 COPY --from=plugins /usr/src/app/plugins/manifest.json /build/corePlugin/manifest.json
+COPY docs/ImageNet_Taxonomy.csv /usr/src/app/docs/ImageNet_Taxonomy.csv
 RUN ln -s ../../cli/bin/immich server/bin/immich
 COPY LICENSE /licenses/LICENSE.txt
 COPY LICENSE /LICENSE

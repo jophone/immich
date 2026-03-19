@@ -22,6 +22,12 @@ import { AssetOrder, AssetVisibility, Permission } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { requireElevatedPermission } from 'src/utils/access';
 import { getMyPartnerIds } from 'src/utils/asset.util';
+import {
+    getCategoryHierarchy,
+    getKnownRawCategoryNames,
+    getRawCategoriesByHierarchy,
+    shouldIncludeUnmappedCategories,
+} from 'src/utils/category-taxonomy';
 import { isSmartSearchEnabled } from 'src/utils/misc';
 
 @Injectable()
@@ -51,7 +57,53 @@ export class SearchService extends BaseService {
       }),
     ]);
 
-    const allAssetIds = [...cities.items.map(({ data }) => data), ...categories.items.map(({ data }) => data)];
+    const categoryL1ById = new Map<string, { value: string; data: string; labelZh: string; labelEn: string }>();
+    const categoryL2ById = new Map<
+      string,
+      {
+        value: string;
+        data: string;
+        labelZh: string;
+        labelEn: string;
+        parentValue: string;
+        parentLabelZh: string;
+        parentLabelEn: string;
+      }
+    >();
+
+    for (const item of categories.items) {
+      const hierarchy = getCategoryHierarchy(item.value);
+
+      if (!categoryL1ById.has(hierarchy.l1.id)) {
+        categoryL1ById.set(hierarchy.l1.id, {
+          value: hierarchy.l1.id,
+          data: item.data,
+          labelZh: hierarchy.l1.nameZh,
+          labelEn: hierarchy.l1.nameEn,
+        });
+      }
+
+      if (!categoryL2ById.has(hierarchy.l2.id)) {
+        categoryL2ById.set(hierarchy.l2.id, {
+          value: hierarchy.l2.id,
+          data: item.data,
+          labelZh: hierarchy.l2.nameZh,
+          labelEn: hierarchy.l2.nameEn,
+          parentValue: hierarchy.l1.id,
+          parentLabelZh: hierarchy.l1.nameZh,
+          parentLabelEn: hierarchy.l1.nameEn,
+        });
+      }
+    }
+
+    const categoryL1Items = [...categoryL1ById.values()];
+    const categoryL2Items = [...categoryL2ById.values()];
+
+    const allAssetIds = [
+      ...cities.items.map(({ data }) => data),
+      ...categoryL1Items.map(({ data }) => data),
+      ...categoryL2Items.map(({ data }) => data),
+    ];
     const uniqueAssetIds = [...new Set(allAssetIds)];
     const assets = await this.assetRepository.getByIdsWithAllRelationsButStacks(uniqueAssetIds);
     const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
@@ -62,12 +114,33 @@ export class SearchService extends BaseService {
 
     const result = [{ fieldName: cities.fieldName, items: cityItems }];
 
-    const categoryItems = categories.items
+    const categoryL1ExploreItems = categoryL1Items
       .filter(({ data }) => assetMap.has(data))
-      .map(({ value, data }) => ({ value, data: mapAsset(assetMap.get(data)!, { auth }) }));
+      .map(({ value, data, labelZh, labelEn }) => ({
+        value,
+        data: mapAsset(assetMap.get(data)!, { auth }),
+        labelZh,
+        labelEn,
+      }));
 
-    if (categoryItems.length > 0) {
-      result.push({ fieldName: categories.fieldName, items: categoryItems });
+    if (categoryL1ExploreItems.length > 0) {
+      result.push({ fieldName: 'categoryL1', items: categoryL1ExploreItems });
+    }
+
+    const categoryL2ExploreItems = categoryL2Items
+      .filter(({ data }) => assetMap.has(data))
+      .map(({ value, data, labelZh, labelEn, parentValue, parentLabelZh, parentLabelEn }) => ({
+        value,
+        data: mapAsset(assetMap.get(data)!, { auth }),
+        labelZh,
+        labelEn,
+        parentValue,
+        parentLabelZh,
+        parentLabelEn,
+      }));
+
+    if (categoryL2ExploreItems.length > 0) {
+      result.push({ fieldName: 'categoryL2', items: categoryL2ExploreItems });
     }
 
     return result;
@@ -87,10 +160,11 @@ export class SearchService extends BaseService {
     const page = dto.page ?? 1;
     const size = dto.size || 250;
     const userIds = await this.getUserIdsToSearch(auth);
+    const searchOptions = this.withExpandedCategoryFilters(dto);
     const { hasNextPage, items } = await this.searchRepository.searchMetadata(
       { page, size },
       {
-        ...dto,
+        ...searchOptions,
         checksum,
         userIds,
         orderDirection: dto.order ?? AssetOrder.Desc,
@@ -102,9 +176,10 @@ export class SearchService extends BaseService {
 
   async searchStatistics(auth: AuthDto, dto: StatisticsSearchDto): Promise<SearchStatisticsResponseDto> {
     const userIds = await this.getUserIdsToSearch(auth);
+    const searchOptions = this.withExpandedCategoryFilters(dto);
 
     return await this.searchRepository.searchStatistics({
-      ...dto,
+      ...searchOptions,
       userIds,
     });
   }
@@ -115,7 +190,8 @@ export class SearchService extends BaseService {
     }
 
     const userIds = await this.getUserIdsToSearch(auth);
-    const items = await this.searchRepository.searchRandom(dto.size || 250, { ...dto, userIds });
+    const searchOptions = this.withExpandedCategoryFilters(dto);
+    const items = await this.searchRepository.searchRandom(dto.size || 250, { ...searchOptions, userIds });
     return items.map((item) => mapAsset(item, { auth }));
   }
 
@@ -125,7 +201,8 @@ export class SearchService extends BaseService {
     }
 
     const userIds = await this.getUserIdsToSearch(auth);
-    const items = await this.searchRepository.searchLargeAssets(dto.size || 250, { ...dto, userIds });
+    const searchOptions = this.withExpandedCategoryFilters(dto);
+    const items = await this.searchRepository.searchLargeAssets(dto.size || 250, { ...searchOptions, userIds });
     return items.map((item) => mapAsset(item, { auth }));
   }
 
@@ -164,9 +241,10 @@ export class SearchService extends BaseService {
     }
     const page = dto.page ?? 1;
     const size = dto.size || 100;
+    const searchOptions = this.withExpandedCategoryFilters(dto);
     const { hasNextPage, items } = await this.searchRepository.searchSmart(
       { page, size },
-      { ...dto, userIds: await userIds, embedding },
+      { ...searchOptions, userIds: await userIds, embedding },
     );
 
     return this.mapResponse(items, hasNextPage ? (page + 1).toString() : null, { auth });
@@ -220,6 +298,20 @@ export class SearchService extends BaseService {
       timelineEnabled: true,
     });
     return [auth.user.id, ...partnerIds];
+  }
+
+  private withExpandedCategoryFilters<T extends { category?: string; categoryL1?: string; categoryL2?: string }>(
+    dto: T,
+  ): T & { categoryNames?: string[]; categoryIncludeUnmapped?: boolean; categoryKnownNames?: string[] } {
+    if (dto.category || (!dto.categoryL1 && !dto.categoryL2)) {
+      return dto;
+    }
+
+    const categoryNames = getRawCategoriesByHierarchy({ categoryL1: dto.categoryL1, categoryL2: dto.categoryL2 }) ?? [];
+    const categoryIncludeUnmapped = shouldIncludeUnmappedCategories({ categoryL1: dto.categoryL1, categoryL2: dto.categoryL2 });
+    const categoryKnownNames = categoryIncludeUnmapped ? getKnownRawCategoryNames() : undefined;
+
+    return { ...dto, categoryNames, categoryIncludeUnmapped, categoryKnownNames };
   }
 
   private mapResponse(assets: MapAsset[], nextPage: string | null, options: AssetMapOptions): SearchResponseDto {

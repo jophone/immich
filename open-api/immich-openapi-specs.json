@@ -9355,6 +9355,24 @@
             }
           },
           {
+            "name": "categoryL1",
+            "required": false,
+            "in": "query",
+            "description": "Filter by level 1 category ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryL2",
+            "required": false,
+            "in": "query",
+            "description": "Filter by level 2 category ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "city",
             "required": false,
             "in": "query",
@@ -17554,7 +17572,28 @@
       },
       "CategorySummaryResponseDto": {
         "properties": {
+          "categoryL1Id": {
+            "type": "string"
+          },
+          "categoryL1NameEn": {
+            "type": "string"
+          },
+          "categoryL1NameZh": {
+            "type": "string"
+          },
+          "categoryL2Id": {
+            "type": "string"
+          },
+          "categoryL2NameEn": {
+            "type": "string"
+          },
+          "categoryL2NameZh": {
+            "type": "string"
+          },
           "categoryName": {
+            "type": "string"
+          },
+          "categoryNameZh": {
             "type": "string"
           },
           "count": {
@@ -17562,6 +17601,12 @@
           }
         },
         "required": [
+          "categoryL1Id",
+          "categoryL1NameEn",
+          "categoryL1NameZh",
+          "categoryL2Id",
+          "categoryL2NameEn",
+          "categoryL2NameZh",
           "categoryName",
           "count"
         ],
@@ -19120,6 +19165,14 @@
           },
           "category": {
             "description": "Filter by classification category",
+            "type": "string"
+          },
+          "categoryL1": {
+            "description": "Filter by level 1 category ID",
+            "type": "string"
+          },
+          "categoryL2": {
+            "description": "Filter by level 2 category ID",
             "type": "string"
           },
           "checksum": {
@@ -20921,6 +20974,14 @@
             "description": "Filter by classification category",
             "type": "string"
           },
+          "categoryL1": {
+            "description": "Filter by level 1 category ID",
+            "type": "string"
+          },
+          "categoryL2": {
+            "description": "Filter by level 2 category ID",
+            "type": "string"
+          },
           "city": {
             "description": "Filter by city name",
             "nullable": true,
@@ -21244,6 +21305,26 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/AssetResponseDto"
+          },
+          "labelEn": {
+            "description": "Localized English label for the explore item",
+            "type": "string"
+          },
+          "labelZh": {
+            "description": "Localized Chinese label for the explore item",
+            "type": "string"
+          },
+          "parentLabelEn": {
+            "description": "Localized English label for the parent item",
+            "type": "string"
+          },
+          "parentLabelZh": {
+            "description": "Localized Chinese label for the parent item",
+            "type": "string"
+          },
+          "parentValue": {
+            "description": "Parent value for hierarchical explore items",
+            "type": "string"
           },
           "value": {
             "description": "Explore value",
@@ -22298,6 +22379,14 @@
             "description": "Filter by classification category",
             "type": "string"
           },
+          "categoryL1": {
+            "description": "Filter by level 1 category ID",
+            "type": "string"
+          },
+          "categoryL2": {
+            "description": "Filter by level 2 category ID",
+            "type": "string"
+          },
           "city": {
             "description": "Filter by city name",
             "nullable": true,
@@ -22565,6 +22654,14 @@
           },
           "category": {
             "description": "Filter by classification category",
+            "type": "string"
+          },
+          "categoryL1": {
+            "description": "Filter by level 1 category ID",
+            "type": "string"
+          },
+          "categoryL2": {
+            "description": "Filter by level 2 category ID",
             "type": "string"
           },
           "city": {

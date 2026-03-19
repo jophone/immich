@@ -97,7 +97,7 @@ describe(SearchService.name, () => {
       });
       mocks.category.getTopCategoriesWithAsset.mockResolvedValue({
         fieldName: 'category',
-        items: [{ value: 'landscape', data: catAsset.id }],
+        items: [{ value: 'tabby cat', data: catAsset.id }],
       });
       mocks.asset.getByIdsWithAllRelationsButStacks.mockResolvedValue([cityAsset as never, catAsset as never]);
 
@@ -113,7 +113,31 @@ describe(SearchService.name, () => {
 
       expect(result).toEqual([
         { fieldName: 'exifInfo.city', items: [{ value: 'city', data: mapAsset(cityAsset) }] },
-        { fieldName: 'category', items: [{ value: 'landscape', data: mapAsset(catAsset) }] },
+        {
+          fieldName: 'categoryL1',
+          items: [
+            {
+              value: 'animals',
+              data: mapAsset(catAsset),
+              labelZh: '动物',
+              labelEn: 'Animals',
+            },
+          ],
+        },
+        {
+          fieldName: 'categoryL2',
+          items: [
+            {
+              value: 'animals_domestic_cats',
+              data: mapAsset(catAsset),
+              labelZh: '家猫',
+              labelEn: 'Domestic Cats',
+              parentValue: 'animals',
+              parentLabelZh: '动物',
+              parentLabelEn: 'Animals',
+            },
+          ],
+        },
       ]);
     });
 
@@ -330,6 +354,64 @@ describe(SearchService.name, () => {
       expect(mocks.machineLearning.encodeText).toHaveBeenCalledWith(
         'test',
         expect.objectContaining({ language: 'de' }),
+      );
+    });
+  });
+
+  describe('hierarchical category filters', () => {
+    it('should expand categoryL1 filters into raw category names', async () => {
+      mocks.search.searchMetadata.mockResolvedValue({ hasNextPage: false, items: [] });
+
+      await sut.searchMetadata(authStub.user1, { categoryL1: 'animals', size: 10 });
+
+      expect(mocks.search.searchMetadata).toHaveBeenCalledWith(
+        { page: 1, size: 10 },
+        expect.objectContaining({
+          categoryL1: 'animals',
+          categoryNames: expect.arrayContaining(['tabby_cat']),
+          userIds: [authStub.user1.user.id],
+        }),
+      );
+    });
+
+    it('should include unmapped category filter for other/other_misc', async () => {
+      mocks.search.searchMetadata.mockResolvedValue({ hasNextPage: false, items: [] });
+
+      await sut.searchMetadata(authStub.user1, {
+        categoryL1: 'other',
+        categoryL2: 'other_misc',
+        size: 10,
+      });
+
+      expect(mocks.search.searchMetadata).toHaveBeenCalledWith(
+        { page: 1, size: 10 },
+        expect.objectContaining({
+          categoryL1: 'other',
+          categoryL2: 'other_misc',
+          categoryIncludeUnmapped: true,
+          categoryKnownNames: expect.arrayContaining(['tabby_cat']),
+          userIds: [authStub.user1.user.id],
+        }),
+      );
+    });
+
+    it('should produce an empty expanded list for incompatible categoryL1/categoryL2 filters', async () => {
+      mocks.search.searchMetadata.mockResolvedValue({ hasNextPage: false, items: [] });
+
+      await sut.searchMetadata(authStub.user1, {
+        categoryL1: 'animals',
+        categoryL2: 'transportation_cars',
+        size: 10,
+      });
+
+      expect(mocks.search.searchMetadata).toHaveBeenCalledWith(
+        { page: 1, size: 10 },
+        expect.objectContaining({
+          categoryL1: 'animals',
+          categoryL2: 'transportation_cars',
+          categoryNames: [],
+          userIds: [authStub.user1.user.id],
+        }),
       );
     });
   });

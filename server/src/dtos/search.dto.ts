@@ -79,6 +79,12 @@ class BaseSearchDto {
   @ValidateString({ optional: true, trim: true, description: 'Filter by classification category' })
   category?: string;
 
+  @ValidateString({ optional: true, trim: true, description: 'Filter by level 1 category ID' })
+  categoryL1?: string;
+
+  @ValidateString({ optional: true, trim: true, description: 'Filter by level 2 category ID' })
+  categoryL2?: string;
+
   @ApiPropertyOptional({ description: 'Filter by camera make' })
   @IsString()
   @Optional({ nullable: true, emptyToNull: true })
@@ -399,6 +405,21 @@ class SearchExploreItem {
   // Description lives on schema to avoid duplication
   @ApiProperty({ description: undefined })
   data!: AssetResponseDto;
+
+  @ApiPropertyOptional({ description: 'Localized Chinese label for the explore item' })
+  labelZh?: string;
+
+  @ApiPropertyOptional({ description: 'Localized English label for the explore item' })
+  labelEn?: string;
+
+  @ApiPropertyOptional({ description: 'Parent value for hierarchical explore items' })
+  parentValue?: string;
+
+  @ApiPropertyOptional({ description: 'Localized Chinese label for the parent item' })
+  parentLabelZh?: string;
+
+  @ApiPropertyOptional({ description: 'Localized English label for the parent item' })
+  parentLabelEn?: string;
 }
 
 export class SearchExploreResponseDto {

@@ -20,4 +20,25 @@ export class CategorySummaryResponseDto {
 
   @ApiProperty({ type: 'integer' })
   count!: number;
+
+  @ApiProperty({ type: 'string' })
+  categoryL1Id!: string;
+
+  @ApiProperty({ type: 'string' })
+  categoryL1NameZh!: string;
+
+  @ApiProperty({ type: 'string' })
+  categoryL1NameEn!: string;
+
+  @ApiProperty({ type: 'string' })
+  categoryL2Id!: string;
+
+  @ApiProperty({ type: 'string' })
+  categoryL2NameZh!: string;
+
+  @ApiProperty({ type: 'string' })
+  categoryL2NameEn!: string;
+
+  @ApiProperty({ type: 'string', required: false })
+  categoryNameZh?: string;
 }

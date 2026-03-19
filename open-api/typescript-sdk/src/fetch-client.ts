@@ -1131,7 +1131,14 @@ export type ValidateAccessTokenResponseDto = {
     authStatus: boolean;
 };
 export type CategorySummaryResponseDto = {
+    categoryL1Id: string;
+    categoryL1NameEn: string;
+    categoryL1NameZh: string;
+    categoryL2Id: string;
+    categoryL2NameEn: string;
+    categoryL2NameZh: string;
     categoryName: string;
+    categoryNameZh?: string;
     count: number;
 };
 export type AssetCategoryResponseDto = {
@@ -1659,6 +1666,16 @@ export type QueueJobResponseDto = {
 };
 export type SearchExploreItem = {
     data: AssetResponseDto;
+    /** Localized English label for the explore item */
+    labelEn?: string;
+    /** Localized Chinese label for the explore item */
+    labelZh?: string;
+    /** Localized English label for the parent item */
+    parentLabelEn?: string;
+    /** Localized Chinese label for the parent item */
+    parentLabelZh?: string;
+    /** Parent value for hierarchical explore items */
+    parentValue?: string;
     /** Explore value */
     value: string;
 };
@@ -1672,6 +1689,10 @@ export type MetadataSearchDto = {
     albumIds?: string[];
     /** Filter by classification category */
     category?: string;
+    /** Filter by level 1 category ID */
+    categoryL1?: string;
+    /** Filter by level 2 category ID */
+    categoryL2?: string;
     /** Filter by file checksum */
     checksum?: string;
     /** Filter by city name */
@@ -1810,6 +1831,10 @@ export type RandomSearchDto = {
     albumIds?: string[];
     /** Filter by classification category */
     category?: string;
+    /** Filter by level 1 category ID */
+    categoryL1?: string;
+    /** Filter by level 2 category ID */
+    categoryL2?: string;
     /** Filter by city name */
     city?: string | null;
     /** Filter by country name */
@@ -1880,6 +1905,10 @@ export type SmartSearchDto = {
     albumIds?: string[];
     /** Filter by classification category */
     category?: string;
+    /** Filter by level 1 category ID */
+    categoryL1?: string;
+    /** Filter by level 2 category ID */
+    categoryL2?: string;
     /** Filter by city name */
     city?: string | null;
     /** Filter by country name */
@@ -1954,6 +1983,10 @@ export type StatisticsSearchDto = {
     albumIds?: string[];
     /** Filter by classification category */
     category?: string;
+    /** Filter by level 1 category ID */
+    categoryL1?: string;
+    /** Filter by level 2 category ID */
+    categoryL2?: string;
     /** Filter by city name */
     city?: string | null;
     /** Filter by country name */
@@ -5491,9 +5524,11 @@ export function getExploreData(opts?: Oazapfts.RequestOpts) {
 /**
  * Search large assets
  */
-export function searchLargeAssets({ albumIds, category, city, country, createdAfter, createdBefore, deviceId, isEncoded, isFavorite, isMotion, isNotInAlbum, isOffline, lensModel, libraryId, make, minFileSize, model, ocr, personIds, rating, size, state, tagIds, takenAfter, takenBefore, trashedAfter, trashedBefore, $type, updatedAfter, updatedBefore, visibility, withDeleted, withExif }: {
+export function searchLargeAssets({ albumIds, category, categoryL1, categoryL2, city, country, createdAfter, createdBefore, deviceId, isEncoded, isFavorite, isMotion, isNotInAlbum, isOffline, lensModel, libraryId, make, minFileSize, model, ocr, personIds, rating, size, state, tagIds, takenAfter, takenBefore, trashedAfter, trashedBefore, $type, updatedAfter, updatedBefore, visibility, withDeleted, withExif }: {
     albumIds?: string[];
     category?: string;
+    categoryL1?: string;
+    categoryL2?: string;
     city?: string | null;
     country?: string | null;
     createdAfter?: string;
@@ -5532,6 +5567,8 @@ export function searchLargeAssets({ albumIds, category, city, country, createdAf
     }>(`/search/large-assets${QS.query(QS.explode({
         albumIds,
         category,
+        categoryL1,
+        categoryL2,
         city,
         country,
         createdAfter,

@@ -182,6 +182,8 @@
       query: $t('context'),
       city: $t('city'),
       category: $t('categories'),
+      categoryL1: $t('categories'),
+      categoryL2: $t('categories'),
       country: $t('country'),
       state: $t('state'),
       make: $t('camera_brand'),

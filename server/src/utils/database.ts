@@ -1,17 +1,17 @@
 import { createPostgres, DatabaseConnectionParams } from '@immich/sql-tools';
 import {
-    AliasedRawBuilder,
-    DeduplicateJoinsPlugin,
-    Expression,
-    ExpressionBuilder,
-    ExpressionWrapper,
-    Kysely,
-    KyselyConfig,
-    Nullable,
-    Selectable,
-    SelectQueryBuilder,
-    Simplify,
-    sql,
+  AliasedRawBuilder,
+  DeduplicateJoinsPlugin,
+  Expression,
+  ExpressionBuilder,
+  ExpressionWrapper,
+  Kysely,
+  KyselyConfig,
+  Nullable,
+  Selectable,
+  SelectQueryBuilder,
+  Simplify,
+  sql,
 } from 'kysely';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -346,9 +346,54 @@ export function searchAssetBuilder(kysely: Kysely<DB>, options: AssetSearchBuild
         .where('asset_exif.country', options.country === null ? 'is' : '=', options.country!),
     )
     .$if(!!options.category, (qb) =>
-      qb
-        .innerJoin('asset_categories', 'asset.id', 'asset_categories.assetId')
-        .where('asset_categories.categoryName', '=', options.category!),
+      qb.where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('asset_categories')
+            .select('asset_categories.assetId')
+            .whereRef('asset_categories.assetId', '=', 'asset.id')
+            .where('asset_categories.categoryName', '=', options.category!),
+        ),
+      ),
+    )
+    .$if(options.categoryNames !== undefined, (qb) =>
+      qb.where((eb) => {
+        const hasCategoryNames = (options.categoryNames?.length ?? 0) > 0;
+        const hasKnownNames = (options.categoryKnownNames?.length ?? 0) > 0;
+        const categoryQuery = eb
+          .selectFrom('asset_categories')
+          .select('asset_categories.assetId')
+          .whereRef('asset_categories.assetId', '=', 'asset.id');
+
+        if (options.categoryIncludeUnmapped === true) {
+          if (hasCategoryNames && hasKnownNames) {
+            return eb.exists(
+              categoryQuery.where((eb) =>
+                eb.or([
+                  eb('asset_categories.categoryName', 'in', options.categoryNames!),
+                  eb('asset_categories.categoryName', 'not in', options.categoryKnownNames!),
+                ]),
+              ),
+            );
+          }
+
+          if (hasCategoryNames) {
+            return eb.exists(categoryQuery.where('asset_categories.categoryName', 'in', options.categoryNames!));
+          }
+
+          if (hasKnownNames) {
+            return eb.exists(categoryQuery.where('asset_categories.categoryName', 'not in', options.categoryKnownNames!));
+          }
+
+          return sql<boolean>`true`;
+        }
+
+        if (hasCategoryNames) {
+          return eb.exists(categoryQuery.where('asset_categories.categoryName', 'in', options.categoryNames!));
+        }
+
+        return sql<boolean>`false`;
+      }),
     )
     .$if(options.make !== undefined, (qb) =>
       qb
