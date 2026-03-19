@@ -49,18 +49,6 @@
 
 参考已有端点 `POST /predict` 的模式（第 39-71 行），复用 `model_cache`、`load()`、`run()` 等工具函数。
 
-默认类别列表（30 个）：
-```python
-DEFAULT_CATEGORIES = [
-    "landscape", "portrait", "food", "animal", "architecture",
-    "beach", "night", "city", "nature", "sport",
-    "flower", "sunset", "mountain", "water", "forest",
-    "indoor", "outdoor", "street", "garden", "snow",
-    "car", "document", "selfie", "group photo", "pet",
-    "wedding", "birthday", "travel", "art", "abstract",
-]
-```
-
 ---
 
 ### Phase 2: 数据库 — 新表 + 迁移
@@ -587,3 +575,41 @@ let categories = $derived(getFieldItems(data.items, 'category'));
    - Explore 页面出现 Categories 板块
 5. 类型检查：`pnpm --filter immich run check && pnpm --filter immich-web run check:svelte`
 6. 代码质量：`pnpm --filter immich run lint:fix && pnpm --filter immich-web run lint:fix`
+
+---
+
+## 增量实现（2026-03-19）：搜索选项面板按类别过滤
+
+### 背景
+
+在既有“详情面板/Explore 分类浏览”之外，补齐“搜索选项面板按类别精确过滤”，让用户可在高级搜索中直接选择分类并进入 metadata 过滤链路。
+
+### Phase 11: Web 前端 — SearchFilterModal 接入 category
+
+#### 11a. 新建分类筛选区块组件
+
+**新建文件**: `web/src/lib/components/shared-components/search-bar/search-category-section.svelte`
+
+实现要点：
+- Props 使用 `category?: string` 并通过 `$bindable()` 暴露双向绑定，供父级 modal 直接绑定 `filter.category`
+- 在 `onMount()` 中调用 SDK `getCategorySummaries()` 动态获取用户当前可用分类，映射为 `ComboboxOption[]`
+- 映射规则：`id/label/value` 全部使用 `result.categoryName`，保证展示值与提交值一致
+- 兜底清理：若 URL 回填的 `category` 已不在当前分类列表中，自动置为 `undefined`，避免提交无效过滤值
+- 展示条件：`{#if categories.length > 0 || category}`；无分类时不占位，存在历史 category 时仍允许用户清空
+
+#### 11b. SearchFilterModal 状态与提交流水线
+
+**修改文件**: `web/src/lib/modals/SearchFilterModal.svelte`
+
+变更点：
+- `SearchFilter` 类型新增 `category?: string` 字段
+- 初始化阶段从 `searchQuery.category` 回填到 `filter.category`，支持从 URL/历史条件恢复状态
+- `resetForm()` 时将 `category` 重置为 `undefined`，与其它可选过滤字段行为一致
+- `search()` 构造 payload 时新增 `category: filter.category`，将分类过滤透传给后端搜索接口
+- UI 结构中在 Tags 区块后插入 `<SearchCategorySection bind:category={filter.category} />`
+
+### Phase 12: 交互语义与兼容性约束
+
+- 本次改动只扩展 Web 搜索面板，不改动 ML/DB/服务端分类生成链路
+- 过滤字段沿用现有 DTO 的 `category` 属性，无新增接口、无破坏性变更
+- 分类候选项来源于后端汇总接口 `getCategorySummaries()`，不在前端硬编码，确保与用户真实分类数据一致

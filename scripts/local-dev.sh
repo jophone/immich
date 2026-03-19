@@ -18,9 +18,16 @@ WEB_PORT="${IMMICH_WEB_PORT:-3000}"
 API_PORT="${IMMICH_API_PORT:-2283}"
 ML_PORT="${IMMICH_ML_PORT:-3003}"
 
-WEB_URL="http://127.0.0.1:${WEB_PORT}"
-API_URL="http://127.0.0.1:${API_PORT}"
-ML_URL="http://127.0.0.1:${ML_PORT}"
+LOCAL_DEV_BIND_HOST="${IMMICH_LOCAL_DEV_HOST:-127.0.0.1}"
+LOCAL_DEV_ACCESS_HOST="${IMMICH_LOCAL_DEV_ACCESS_HOST:-$LOCAL_DEV_BIND_HOST}"
+
+if [[ "$LOCAL_DEV_ACCESS_HOST" == '0.0.0.0' || "$LOCAL_DEV_ACCESS_HOST" == '::' ]]; then
+  LOCAL_DEV_ACCESS_HOST='127.0.0.1'
+fi
+
+WEB_URL="http://${LOCAL_DEV_ACCESS_HOST}:${WEB_PORT}"
+API_URL="http://${LOCAL_DEV_ACCESS_HOST}:${API_PORT}"
+ML_URL="http://${LOCAL_DEV_ACCESS_HOST}:${ML_PORT}"
 
 ML_PROFILE="${IMMICH_ML_PROFILE:-cpu}"
 RESTART_SERVICES="${LOCAL_DEV_RESTART:-1}"
@@ -331,7 +338,7 @@ start_ml() {
 set -Eeuo pipefail
 cd '$ROOT_DIR/machine-learning'
 export PATH='$ROOT_DIR/machine-learning/.venv/bin:$HOME/.local/bin:$SYSTEM_PATH'
-export IMMICH_HOST='127.0.0.1'
+export IMMICH_HOST='${LOCAL_DEV_BIND_HOST}'
 export IMMICH_PORT='$ML_PORT'
 export IMMICH_LOG_LEVEL='info'
 export MACHINE_LEARNING_CACHE_FOLDER='$MODEL_CACHE_DIR'
@@ -348,7 +355,7 @@ cd '$ROOT_DIR'
 export PATH='$NODE_DIR/bin:$HOME/.local/bin:$SYSTEM_PATH'
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 export IMMICH_ENV=development
-export IMMICH_HOST=127.0.0.1
+export IMMICH_HOST='${LOCAL_DEV_BIND_HOST}'
 export IMMICH_PORT='$API_PORT'
 export DB_HOSTNAME=127.0.0.1
 export DB_PORT=5432
@@ -373,7 +380,7 @@ set -Eeuo pipefail
 cd '$ROOT_DIR'
 export PATH='$NODE_DIR/bin:$HOME/.local/bin:$SYSTEM_PATH'
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-export IMMICH_SERVER_URL='$API_URL/'
+export IMMICH_SERVER_URL=\"\${IMMICH_SERVER_URL:-${API_URL}/}\"
 exec pnpm --filter immich-web run dev
 "
 
@@ -405,6 +412,8 @@ status() {
   log "Web: ${web_ok} (${WEB_URL})"
   log "API: ${api_ok} (${API_URL})"
   log "ML: ${ml_ok} (${ML_URL})"
+  log "Bind host: ${LOCAL_DEV_BIND_HOST}"
+  log "Access host: ${LOCAL_DEV_ACCESS_HOST}"
   log "Features: ${features}"
   log "Logs: ${LOG_DIR}"
 }
@@ -446,6 +455,8 @@ Environment overrides:
   IMMICH_WEB_PORT       Web frontend port (default: 3000)
   IMMICH_API_PORT       API port (default: 2283)
   IMMICH_ML_PORT        Machine-learning port (default: 3003)
+  IMMICH_LOCAL_DEV_HOST         Bind host for the API and machine-learning services (default: 127.0.0.1; set to 0.0.0.0 to listen on all interfaces)
+  IMMICH_LOCAL_DEV_ACCESS_HOST  Host used by the script for readiness checks and the web proxy URL (default: the bind host, or 127.0.0.1 when binding to 0.0.0.0)
   IMMICH_LOCAL_DEV_IMAGE  Image used to extract build assets (default: ghcr.io/immich-app/immich-server:v2)
   LOCAL_DEV_RESTART     Restart existing listeners on known ports (default: 1)
 EOF

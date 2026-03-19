@@ -721,13 +721,6 @@ const [cities, categories] = await Promise.all([
 - 在 `scripts/local-dev.sh` 的 `stop_local_processes()` 中新增清理匹配：`/@nestjs/cli/bin/nest.js start --watch --`，防止复发。
 - 在 `server/src/services/job.service.ts` 的 `onJobRun` catch 分支保留增强日志（包含 job 名、stack、payload），提升后续异常可观测性。
 
-### 验证结果
-
-- 清理并重启后，未分类资产数量在数秒内从 `2` 降为 `0`。
-- 上述两个问题资产均恢复分类，`classifiedAt` 与 `asset_categories` 均正常。
-- 分类 API 回读正常：`GET /api/categories/asset/:id`、`GET /api/categories` 均可见结果。
-- 回归测试通过：`job.service.spec.ts` + `queue.service.spec.ts` + `search.service.spec.ts` 共 `56/56`。
-
 ## 补充记录：Explore 分类筛选与展示稳定性修复（2026-03-16）
 
 ### 背景
@@ -770,10 +763,6 @@ const [cities, categories] = await Promise.all([
 
 ### 第二阶段：回归问题定位与修复（Explore 打不开）
 
-#### 现象
-
-- 在“展示全部类别”后，Explore 页面出现致命错误，页面无法打开。
-
 #### 根因
 
 - Categories 列表 `#each` 使用 `item.data.id` 作为 key。
@@ -785,3 +774,47 @@ const [cities, categories] = await Promise.all([
 - **改动**: `#each categories as item (item.data.id)` 改为 `#each categories as item (item.value)`（类别名唯一）。
 
 ---
+
+## 补充记录：Search Options 面板按类别过滤（2026-03-19）
+
+### 变更 1：新增 `SearchCategorySection`
+
+**文件**: `web/src/lib/components/shared-components/search-bar/search-category-section.svelte`
+
+#### 核心实现
+
+| 点 | 实现 |
+|---|---|
+| 组件状态 | `category?: string` + `$bindable()`，支持父组件双向绑定 |
+| 数据来源 | `onMount()` 调用 `getCategorySummaries()` 拉取用户分类汇总 |
+| UI 控件 | 使用 `Combobox` 展示分类下拉，`onSelect` 回写 `category` |
+| 选项映射 | `id/label/value` 统一使用 `result.categoryName` |
+| 失效值处理 | 若当前 `category` 不在最新选项中，自动清空为 `undefined` |
+| 渲染条件 | `categories.length > 0 || category` 时才渲染区块 |
+
+#### 设计意图
+
+1. **不硬编码类别**：前端选项完全来自后端汇总，天然与用户真实数据同步。
+2. **保持 URL 回填兼容**：即使候选为空，只要存在历史 `category` 仍显示组件，允许用户手动清理。
+3. **异常兜底**：通过 `handlePromiseError(updateCategories())` 复用既有错误处理模式。
+
+### 变更 2：SearchFilterModal category 全链路接线
+
+**文件**: `web/src/lib/modals/SearchFilterModal.svelte`
+
+#### 关键改动
+
+| 位置 | 改动 |
+|------|------|
+| `SearchFilter` 类型 | 新增 `category?: string` |
+| 初始化 | `filter.category = searchQuery.category` |
+| 重置 | `resetForm()` 中显式 `category: undefined` |
+| 提交 | `payload` 新增 `category: filter.category` |
+| UI 组合 | 在 Tags 后插入 `<SearchCategorySection bind:category={filter.category} />` |
+
+#### 行为结果
+
+- 打开搜索选项时，可从下拉选择分类。
+- 点击 Search 后，分类过滤会随 payload 一并提交。
+- 点击 Clear all 时，分类条件与其它过滤项一起被清空。
+- 旧/无效 category 值不会长期残留在筛选状态中。

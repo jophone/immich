@@ -36,7 +36,7 @@ Immich 项目的 web 目录是一个现代化的高性能前端项目，主要�
 * **代码路径**: SearchFilterModal.svelte
 * **分析**: 整个“搜索选项”的弹出窗口是由该文件控制的。它使用 `<Modal title={$t('search_options')}>` 渲染顶部标题并管理弹窗结构，同时内部通过 `filter` 这个反应式（`$state`）对象汇集了底下所有子组件的表单状态。
 
-### 2. 内容区块细分
+#### 1.1. 内容区块细分
 面板中堆叠的每一个独立功能项，都被细分在图库顶部搜索栏的内部组件目录下：search-bar。
 
 * **人物 (People)** 选项（刘亦菲、迪丽热巴头像等）：
@@ -46,6 +46,10 @@ Immich 项目的 web 目录是一个现代化的高性能前端项目，主要�
 * **按类型查找 & 通过描述的场景查找 (Text Section)**：
   * **代码**: `.../search-bar/search-text-section.svelte`
   * 包含了四个 Radio 单选（以文搜图、文件名或扩展名、描述、文本识别），并附有对应的输入框。截图中的占位符提示词 `"海滩上的日出"` 在代码中对应着 `$t('sunrise_on_the_beach')` 多语言键值。
+
+* **类别 (Category)**：
+  * **代码**: `.../search-bar/search-category-section.svelte`
+  * 通过 `getCategorySummaries()` 拉取用户当前分类汇总并映射为 `Combobox` 选项；如果 URL/历史状态中的 `category` 已失效，会自动清空，避免提交无效过滤值。
 
 * **地点 (Location)**：
   * **代码**: `.../search-bar/search-location-section.svelte`
@@ -69,7 +73,7 @@ Immich 项目的 web 目录是一个现代化的高性能前端项目，主要�
 
 ---
 
-### 3. 底部操作栏 (Footer Actions)
+#### 1.2. 底部操作栏 (Footer Actions)
 在截图的最下方。
 * **“清空全部 (Clear all)” & “搜索 (Search)” 按钮**
   * **代码位置**: 再次回到主组件容器底部的 SearchFilterModal.svelte。

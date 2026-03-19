@@ -20,9 +20,15 @@ AUTO_DOWN_LOCAL_DEV="${IMMICH_DOCKER_DOWN_LOCAL_DEV:-1}"
 AUTO_STOP_HOST_POSTGRES="${IMMICH_DOCKER_STOP_HOST_POSTGRES:-1}"
 AUTO_CLEAN_RUNNING_CONFLICTS="${IMMICH_DOCKER_CLEAN_RUNNING_CONFLICTS:-1}"
 
-WEB_URL="http://127.0.0.1:3000"
-API_PING_URL="http://127.0.0.1:2283/api/server/ping"
-ML_PING_URL="http://127.0.0.1:3003/ping"
+DOCKER_ACCESS_HOST="${IMMICH_DOCKER_ACCESS_HOST:-127.0.0.1}"
+
+if [[ "$DOCKER_ACCESS_HOST" == '0.0.0.0' || "$DOCKER_ACCESS_HOST" == '::' ]]; then
+  DOCKER_ACCESS_HOST='127.0.0.1'
+fi
+
+WEB_URL="http://${DOCKER_ACCESS_HOST}:3000"
+API_PING_URL="http://${DOCKER_ACCESS_HOST}:2283/api/server/ping"
+ML_PING_URL="http://${DOCKER_ACCESS_HOST}:3003/ping"
 
 CONFLICT_NAMES=(
   immich_init
@@ -558,6 +564,7 @@ Environment:
   IMMICH_DOCKER_BUILDKIT       BuildKit toggle (default: 1)
   IMMICH_DOCKER_COMPOSE_BAKE   auto|true|false (default: auto)
   IMMICH_DOCKER_RUNTIME        auto|runc|crun|none (default: auto)
+  IMMICH_DOCKER_ACCESS_HOST    Host used by the script for readiness checks and status output (default: 127.0.0.1)
   IMMICH_DOCKER_WAIT           Wait for readiness: 1|0 (default: 1)
   IMMICH_DOCKER_WAIT_ATTEMPTS  Readiness wait loops (default: 360)
   IMMICH_DOCKER_DOWN_LOCAL_DEV Auto-stop local-dev services before Docker up: 1|0 (default: 1)
