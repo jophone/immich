@@ -32,6 +32,49 @@ Immich 项目的 web 目录是一个现代化的高性能前端项目，主要�
   * **全局搜索**：中间的搜索框，关联 `search-bar` 模块以支持高级图库检索。
   * **功能按钮组**：包含截图右上角的「Upload (上传)」按钮组件（触发 `<UploadCover>` 面板组件），以及基于 `theme-button.svelte` 的月亮标志（日/夜间主题切换）、通知 Bell 和右上角的用户头像区（`account-info-panel.svelte`）。
 
+### 1. 搜索选项（Search Options）过滤面板
+* **代码路径**: SearchFilterModal.svelte
+* **分析**: 整个“搜索选项”的弹出窗口是由该文件控制的。它使用 `<Modal title={$t('search_options')}>` 渲染顶部标题并管理弹窗结构，同时内部通过 `filter` 这个反应式（`$state`）对象汇集了底下所有子组件的表单状态。
+
+### 2. 内容区块细分
+面板中堆叠的每一个独立功能项，都被细分在图库顶部搜索栏的内部组件目录下：search-bar。
+
+* **人物 (People)** 选项（刘亦菲、迪丽热巴头像等）：
+  * **代码**: `.../search-bar/search-people-section.svelte`
+  * 调用了图库模型对人脸进行选择组合的过滤功能。
+  
+* **按类型查找 & 通过描述的场景查找 (Text Section)**：
+  * **代码**: `.../search-bar/search-text-section.svelte`
+  * 包含了四个 Radio 单选（以文搜图、文件名或扩展名、描述、文本识别），并附有对应的输入框。截图中的占位符提示词 `"海滩上的日出"` 在代码中对应着 `$t('sunrise_on_the_beach')` 多语言键值。
+
+* **地点 (Location)**：
+  * **代码**: `.../search-bar/search-location-section.svelte`
+  * 负责国家 (Country)、省份 (State)、城市 (City) 的过滤下拉框渲染逻辑。
+
+* **相机 (Camera)**：
+  * **代码**: `.../search-bar/search-camera-section.svelte`
+  * 提取并过滤影像 Exif 数据中的相机品牌 (Make)、型号 (Model)、镜头型号 (Lens Model)。
+
+* **开始日期与结束日期 (Date Range)**：
+  * **代码**: `.../search-bar/search-date-section.svelte`
+  * 提供带有日期选择器能力的输入组件（开始时间和结束时间的界定：`takenAfter` 和 `takenBefore`）。
+
+* **媒体类型 (Media Type)** 全部 / 图片 / 视频：
+  * **代码**: `.../search-bar/search-media-section.svelte`
+  * 处理文件类型的单选按钮组合(`MediaType.Image` / `MediaType.Video`)。
+
+* **显示选项 (Display Options)** 归档/收藏夹/不在任何相册中：
+  * **代码**: `.../search-bar/search-display-section.svelte`
+  * 为复选框组配置选项，用于过滤图片的特定状态属性（如：`isArchive`, `isFavorite`, `isNotInAlbum`）。
+
+---
+
+### 3. 底部操作栏 (Footer Actions)
+在截图的最下方。
+* **“清空全部 (Clear all)” & “搜索 (Search)” 按钮**
+  * **代码位置**: 再次回到主组件容器底部的 SearchFilterModal.svelte。
+  * 由包裹在 `<ModalFooter>` 内的两个 `<Button>` 组成。一个触发表单 `onreset` 重置 `filter` 默认参数，另一个拦截 `onsubmit` 拼装最终组合的 Payload，向后端发起复杂的混合搜索请求 (`SmartSearchDto` 或 `MetadataSearchDto`)。
+
 ## 核心照片流（Photos Gallery / Timeline）
 * **代码路径**: +page.svelte 和 timeline
 * **分析**:

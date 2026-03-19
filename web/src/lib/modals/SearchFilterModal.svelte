@@ -10,6 +10,7 @@
     queryType: 'smart' | 'metadata' | 'description' | 'ocr';
     personIds: SvelteSet<string>;
     tagIds: SvelteSet<string> | null;
+    category?: string;
     location: SearchLocationFilter;
     camera: SearchCameraFilter;
     date: SearchDateFilter;
@@ -23,6 +24,7 @@
   import SearchCameraSection, {
     type SearchCameraFilter,
   } from '$lib/components/shared-components/search-bar/search-camera-section.svelte';
+  import SearchCategorySection from '$lib/components/shared-components/search-bar/search-category-section.svelte';
   import SearchDateSection from '$lib/components/shared-components/search-bar/search-date-section.svelte';
   import SearchDisplaySection from '$lib/components/shared-components/search-bar/search-display-section.svelte';
   import SearchLocationSection from '$lib/components/shared-components/search-bar/search-location-section.svelte';
@@ -85,6 +87,7 @@
           ? null
           : new SvelteSet(searchQuery.tagIds)
         : new SvelteSet(),
+    category: searchQuery.category,
     location: {
       country: withNullAsUndefined(searchQuery.country),
       state: withNullAsUndefined(searchQuery.state),
@@ -120,6 +123,7 @@
       queryType: defaultQueryType(), // retain from localStorage or default
       personIds: new SvelteSet(),
       tagIds: new SvelteSet(),
+      category: undefined,
       location: {},
       camera: {},
       date: {},
@@ -161,6 +165,7 @@
       isNotInAlbum: filter.display.isNotInAlbum || undefined,
       personIds: filter.personIds.size > 0 ? [...filter.personIds] : undefined,
       tagIds: filter.tagIds === null ? null : filter.tagIds.size > 0 ? [...filter.tagIds] : undefined,
+      category: filter.category,
       type,
       rating: filter.rating,
     };
@@ -197,6 +202,9 @@
 
         <!-- TAGS -->
         <SearchTagsSection bind:selectedTags={filter.tagIds} />
+
+        <!-- CATEGORIES -->
+        <SearchCategorySection bind:category={filter.category} />
 
         <!-- LOCATION -->
         <SearchLocationSection bind:filters={filter.location} />
