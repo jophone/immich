@@ -1,10 +1,24 @@
 import type { AssetDescriptor, TimelineAsset, ViewportTopMonth } from '$lib/managers/timeline-manager/types';
-import { locale } from '$lib/stores/preferences.store';
+import { lang, locale } from '$lib/stores/preferences.store';
 import { getAssetRatio } from '$lib/utils/asset-utils';
 import { AssetTypeEnum, type AssetResponseDto } from '@immich/sdk';
 import { DateTime, type LocaleOptions } from 'luxon';
 import { SvelteSet } from 'svelte/reactivity';
 import { get } from 'svelte/store';
+
+const getTimelineLocale = (): string | undefined => {
+  const selectedLocale = get(locale);
+  if (selectedLocale && selectedLocale !== 'default') {
+    return selectedLocale;
+  }
+
+  const selectedLanguage = get(lang);
+  if (!selectedLanguage || selectedLanguage === 'dev') {
+    return undefined;
+  }
+
+  return selectedLanguage.replaceAll('_', '-');
+};
 
 // Move type definitions to the top
 export type TimelineYearMonth = {
@@ -31,7 +45,7 @@ export type ScrubberListener = (scrubberData: {
 
 // used for AssetResponseDto.dateTimeOriginal, amongst others
 export const fromISODateTime = (isoDateTime: string, timeZone: string): DateTime<true> =>
-  DateTime.fromISO(isoDateTime, { zone: timeZone, locale: get(locale) }) as DateTime<true>;
+  DateTime.fromISO(isoDateTime, { zone: timeZone, locale: getTimelineLocale() }) as DateTime<true>;
 
 export const fromISODateTimeToObject = (isoDateTime: string, timeZone: string): TimelineDateTime =>
   (fromISODateTime(isoDateTime, timeZone) as DateTime<true>).toObject();
@@ -80,18 +94,18 @@ export const getTimes = (isoDateTimeUtc: string, localUtcOffsetHours: number) =>
 };
 
 export const fromTimelinePlainDateTime = (timelineDateTime: TimelineDateTime): DateTime<true> =>
-  DateTime.fromObject(timelineDateTime, { zone: 'local', locale: get(locale) }) as DateTime<true>;
+  DateTime.fromObject(timelineDateTime, { zone: 'local', locale: getTimelineLocale() }) as DateTime<true>;
 
 export const fromTimelinePlainDate = (timelineYearMonth: TimelineDate): DateTime<true> =>
   DateTime.fromObject(
     { year: timelineYearMonth.year, month: timelineYearMonth.month, day: timelineYearMonth.day },
-    { zone: 'local', locale: get(locale) },
+    { zone: 'local', locale: getTimelineLocale() },
   ) as DateTime<true>;
 
 export const fromTimelinePlainYearMonth = (timelineYearMonth: TimelineYearMonth): DateTime<true> =>
   DateTime.fromObject(
     { year: timelineYearMonth.year, month: timelineYearMonth.month },
-    { zone: 'local', locale: get(locale) },
+    { zone: 'local', locale: getTimelineLocale() },
   ) as DateTime<true>;
 
 export const toISOYearMonthUTC = ({ year, month }: TimelineYearMonth): string => {
@@ -110,7 +124,7 @@ export function formatMonthGroupTitle(_date: DateTime): string {
       month: 'short',
       year: 'numeric',
     },
-    { locale: get(locale) },
+    { locale: getTimelineLocale() },
   );
 }
 
@@ -123,17 +137,17 @@ export function formatGroupTitle(_date: DateTime): string {
 
   // Today
   if (today.hasSame(date, 'day')) {
-    return date.toRelativeCalendar({ locale: get(locale) });
+    return date.toRelativeCalendar({ locale: getTimelineLocale() });
   }
 
   // Yesterday
   if (today.minus({ days: 1 }).hasSame(date, 'day')) {
-    return date.toRelativeCalendar({ locale: get(locale) });
+    return date.toRelativeCalendar({ locale: getTimelineLocale() });
   }
 
   // Last week
   if (date >= today.minus({ days: 6 }) && date < today) {
-    return date.toLocaleString({ weekday: 'long' }, { locale: get(locale) });
+    return date.toLocaleString({ weekday: 'long' }, { locale: getTimelineLocale() });
   }
 
   // This year
@@ -144,11 +158,11 @@ export function formatGroupTitle(_date: DateTime): string {
         month: 'short',
         day: 'numeric',
       },
-      { locale: get(locale) },
+      { locale: getTimelineLocale() },
     );
   }
 
-  return getDateLocaleString(date, { locale: get(locale) });
+  return getDateLocaleString(date, { locale: getTimelineLocale() });
 }
 
 export const getDateLocaleString = (date: DateTime, opts?: LocaleOptions): string =>

@@ -1,4 +1,4 @@
-import { locale } from '$lib/stores/preferences.store';
+import { lang, locale } from '$lib/stores/preferences.store';
 import { parseUtcDate } from '$lib/utils/date-time';
 import { formatGroupTitle, toISOYearMonthUTC } from '$lib/utils/timeline-util';
 import { DateTime } from 'luxon';
@@ -67,6 +67,14 @@ describe('formatGroupTitle', () => {
     const nextYear = parseUtcDate('2025-01-10T12:00:00Z');
     locale.set('en');
     expect(formatGroupTitle(nextYear)).toBe('Fri, Jan 10, 2025');
+  });
+
+  it('uses app language when locale is default', () => {
+    const date = parseUtcDate('2020-01-01T00:00:00Z');
+    locale.set('default');
+    lang.set('ja');
+
+    expect(formatGroupTitle(date)).toBe(date.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY, { locale: 'ja' }));
   });
 
   it('returns "Invalid DateTime" when date is invalid', () => {

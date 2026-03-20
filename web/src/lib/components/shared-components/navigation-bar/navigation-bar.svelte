@@ -16,7 +16,7 @@
   import { notificationManager } from '$lib/stores/notification-manager.svelte';
   import { sidebarStore } from '$lib/stores/sidebar.svelte';
   import { user } from '$lib/stores/user.store';
-  import { ActionButton, Button, IconButton, Logo } from '@immich/ui';
+  import { ActionButton, Button, IconButton } from '@immich/ui';
   import { mdiBellBadge, mdiBellOutline, mdiMagnify, mdiMenu, mdiTrayArrowUp } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
@@ -78,7 +78,11 @@
         class="sidebar:hidden"
       />
       <a data-sveltekit-preload-data="hover" href={Route.photos()}>
-        <Logo variant={mediaQueryManager.isFullSidebar ? 'inline' : 'icon'} class="max-md:h-12" />
+        <img
+          src="/branding/brand_v0.svg"
+          alt="Brand logo"
+          class={mediaQueryManager.isFullSidebar ? 'max-md:h-12 h-10 w-auto' : 'h-10 w-10 object-cover object-left'}
+        />
       </a>
     </div>
     <div class="flex justify-between gap-4 lg:gap-8 pe-6">
