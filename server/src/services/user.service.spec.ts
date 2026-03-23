@@ -93,6 +93,41 @@ describe(UserService.name, () => {
     });
   });
 
+  describe('preferences', () => {
+    it('should default tags to enabled for existing users without explicit tag preferences', async () => {
+      mocks.user.getMetadata.mockResolvedValue([]);
+
+      await expect(sut.getMyPreferences(authStub.user1)).resolves.toMatchObject({
+        tags: {
+          enabled: true,
+          sidebarWeb: true,
+        },
+      });
+    });
+
+    it('should persist explicit tag opt-out against the new default', async () => {
+      mocks.user.getMetadata.mockResolvedValue([]);
+      mocks.user.upsertMetadata.mockResolvedValue();
+
+      await sut.updateMyPreferences(authStub.user1, {
+        tags: {
+          enabled: false,
+          sidebarWeb: false,
+        },
+      });
+
+      expect(mocks.user.upsertMetadata).toHaveBeenCalledWith(authStub.user1.user.id, {
+        key: UserMetadataKey.Preferences,
+        value: {
+          tags: {
+            enabled: false,
+            sidebarWeb: false,
+          },
+        },
+      });
+    });
+  });
+
   describe('createProfileImage', () => {
     it('should throw an error if the user does not exist', async () => {
       const file = { path: '/profile/path' } as Express.Multer.File;

@@ -82,5 +82,6 @@
     "web/src/app.css": "web/src/**"
   },
   "js/ts.preferences.importModuleSpecifier": "non-relative",
-  "vitest.maximumConfigs": 10
+  "vitest.maximumConfigs": 10,
+  "python.terminal.activateEnvironment": false
 }
