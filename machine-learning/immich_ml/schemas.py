@@ -24,6 +24,7 @@ class ModelTask(StrEnum):
     FACIAL_RECOGNITION = "facial-recognition"
     SEARCH = "clip"
     OCR = "ocr"
+    LITE_SEARCH = "lite-search"
 
 
 class ModelType(StrEnum):
@@ -44,6 +45,7 @@ class ModelSource(StrEnum):
     MCLIP = "mclip"
     OPENCLIP = "openclip"
     PADDLE = "paddle"
+    GOOGLE = "google"
 
 
 class ModelPrecision(StrEnum):

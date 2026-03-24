@@ -236,6 +236,8 @@ export class ServerFeaturesDto {
   email!: boolean;
   @ApiProperty({ description: 'Whether OCR is enabled' })
   ocr!: boolean;
+  @ApiProperty({ description: 'Whether lightweight category-based search is enabled' })
+  liteSearch!: boolean;
 }
 
 export interface ReleaseNotification {

@@ -22,6 +22,7 @@ import { mimeTypes } from 'src/utils/mime-types';
 import {
   isDuplicateDetectionEnabled,
   isFacialRecognitionEnabled,
+  isLiteSearchEnabled,
   isOcrEnabled,
   isSmartSearchEnabled,
 } from 'src/utils/misc';
@@ -106,6 +107,7 @@ export class ServerService extends BaseService {
       passwordLogin: passwordLogin.enabled,
       configFile: !!configFile,
       email: notifications.smtp.enabled,
+      liteSearch: isLiteSearchEnabled(machineLearning),
     };
   }
 

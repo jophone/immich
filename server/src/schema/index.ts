@@ -61,6 +61,7 @@ import { PluginActionTable, PluginFilterTable, PluginTable } from 'src/schema/ta
 import { SessionTable } from 'src/schema/tables/session.table';
 import { SharedLinkAssetTable } from 'src/schema/tables/shared-link-asset.table';
 import { SharedLinkTable } from 'src/schema/tables/shared-link.table';
+import { LiteSearchTable } from 'src/schema/tables/lite-search.table';
 import { SmartSearchTable } from 'src/schema/tables/smart-search.table';
 import { StackAuditTable } from 'src/schema/tables/stack-audit.table';
 import { StackTable } from 'src/schema/tables/stack.table';
@@ -120,6 +121,7 @@ export class ImmichDatabase {
     SessionTable,
     SharedLinkAssetTable,
     SharedLinkTable,
+    LiteSearchTable,
     SmartSearchTable,
     StackTable,
     StackAuditTable,
@@ -233,6 +235,7 @@ export interface DB {
   shared_link: SharedLinkTable;
   shared_link_asset: SharedLinkAssetTable;
 
+  lite_search: LiteSearchTable;
   smart_search: SmartSearchTable;
 
   stack: StackTable;

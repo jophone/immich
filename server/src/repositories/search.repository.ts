@@ -454,6 +454,45 @@ export class SearchRepository {
       .execute();
   }
 
+  @GenerateSql({
+    params: [
+      { page: 1, size: 200 },
+      {
+        takenAfter: DummyValue.DATE,
+        embedding: DummyValue.VECTOR,
+        lensModel: DummyValue.STRING,
+        withStacked: true,
+        isFavorite: true,
+        userIds: [DummyValue.UUID],
+      },
+    ],
+  })
+  searchLite(pagination: SearchPaginationOptions, options: SmartSearchOptions) {
+    if (!isValidInteger(pagination.size, { min: 1, max: 1000 })) {
+      throw new Error(`Invalid value for 'size': ${pagination.size}`);
+    }
+
+    return this.db.transaction().execute(async (trx) => {
+      await sql`set local vchordrq.probes = ${sql.lit(probes[VectorIndex.LiteSearch])}`.execute(trx);
+      const items = await searchAssetBuilder(trx, options)
+        .selectAll('asset')
+        .innerJoin('lite_search', 'asset.id', 'lite_search.assetId')
+        .orderBy(sql`lite_search.embedding <=> ${options.embedding}`)
+        .limit(pagination.size + 1)
+        .offset((pagination.page - 1) * pagination.size)
+        .execute();
+      return paginationHelper(items, pagination.size);
+    });
+  }
+
+  async upsertLite(assetId: string, embedding: string): Promise<void> {
+    await this.db
+      .insertInto('lite_search')
+      .values({ assetId, embedding })
+      .onConflict((oc) => oc.column('assetId').doUpdateSet((eb) => ({ embedding: eb.ref('excluded.embedding') })))
+      .execute();
+  }
+
   async getCountries(userIds: string[]): Promise<string[]> {
     const res = await this.getExifField('country', userIds).execute();
     return res.map((row) => row.country!);

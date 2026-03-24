@@ -37,8 +37,10 @@
     type AssetResponseDto,
     getPerson,
     getTagById,
+    type LiteSearchDto,
     type MetadataSearchDto,
     searchAssets,
+    searchLite,
     searchSmart,
     type SmartSearchDto,
   } from '@immich/sdk';
@@ -64,7 +66,7 @@
 
   const assetInteraction = new AssetInteraction();
 
-  type SearchTerms = MetadataSearchDto & Pick<SmartSearchDto, 'query' | 'queryAssetId'>;
+  type SearchTerms = MetadataSearchDto & Pick<SmartSearchDto, 'query' | 'queryAssetId'> & { liteQuery?: string };
   let searchQuery = $derived(page.url.searchParams.get(QueryParameter.QUERY));
   let smartSearchEnabled = $derived(featureFlagsManager.value.smartSearch);
   let terms = $derived(searchQuery ? JSON.parse(searchQuery) : {});
@@ -143,10 +145,16 @@
     };
 
     try {
-      const { albums, assets } =
-        ('query' in searchDto || 'queryAssetId' in searchDto) && smartSearchEnabled
-          ? await searchSmart({ smartSearchDto: searchDto })
-          : await searchAssets({ metadataSearchDto: searchDto });
+      let result;
+      if ('liteQuery' in searchDto && searchDto.liteQuery) {
+        const { liteQuery, ...rest } = searchDto;
+        result = await searchLite({ liteSearchDto: { query: liteQuery, ...rest } as LiteSearchDto });
+      } else if (('query' in searchDto || 'queryAssetId' in searchDto) && smartSearchEnabled) {
+        result = await searchSmart({ smartSearchDto: searchDto });
+      } else {
+        result = await searchAssets({ metadataSearchDto: searchDto });
+      }
+      const { albums, assets } = result;
 
       searchResultAlbums.push(...albums.items);
       searchResultAssets.push(...assets.items);
@@ -180,6 +188,7 @@
       isNotInAlbum: $t('not_in_any_album'),
       type: $t('media_type'),
       query: $t('context'),
+      liteQuery: $t('lite_search'),
       city: $t('city'),
       category: $t('categories'),
       categoryL1: $t('categories'),

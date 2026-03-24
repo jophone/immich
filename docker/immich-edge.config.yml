@@ -1,0 +1,19 @@
+machineLearning:
+  enabled: true
+  clip:
+    enabled: false
+  duplicateDetection:
+    enabled: false
+  facialRecognition:
+    enabled: false
+  ocr:
+    enabled: false
+  classification:
+    enabled: true
+    modelName: "YOLO26l-cls"
+    minScore: 0.15
+    maxResults: 5
+  liteSearch:
+    enabled: true
+    modelName: "google/embeddinggemma-300m"
+    localModelPath: "/root/snap/model/embeddinggemma-300m"

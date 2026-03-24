@@ -6,7 +6,7 @@
 
   interface Props {
     query: string | undefined;
-    queryType?: 'smart' | 'metadata' | 'description' | 'ocr';
+    queryType?: 'smart' | 'lite' | 'metadata' | 'description' | 'ocr';
   }
 
   let { query = $bindable(), queryType = $bindable('smart') }: Props = $props();
@@ -18,6 +18,15 @@
     <div class="flex flex-wrap gap-x-5 gap-y-2 my-2">
       {#if featureFlagsManager.value.smartSearch}
         <RadioButton name="query-type" id="context-radio" label={$t('context')} bind:group={queryType} value="smart" />
+      {/if}
+      {#if featureFlagsManager.value.liteSearch}
+        <RadioButton
+          name="query-type"
+          id="lite-search-radio"
+          label={$t('lite_search')}
+          bind:group={queryType}
+          value="lite"
+        />
       {/if}
       <RadioButton
         name="query-type"
@@ -42,6 +51,10 @@
   {#if queryType === 'smart'}
     <Field label={$t('search_by_context')}>
       <Input type="text" placeholder={$t('sunrise_on_the_beach')} bind:value={query} />
+    </Field>
+  {:else if queryType === 'lite'}
+    <Field label={$t('search_by_lite')}>
+      <Input type="text" placeholder={$t('lite_search_placeholder')} bind:value={query} />
     </Field>
   {:else if queryType === 'metadata'}
     <Field label={$t('search_by_filename')}>

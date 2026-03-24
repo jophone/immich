@@ -257,6 +257,24 @@ export class SmartSearchDto extends BaseSearchWithResultsDto {
   page?: number;
 }
 
+export class LiteSearchDto extends BaseSearchWithResultsDto {
+  @ValidateString({ optional: false, trim: true, description: 'Natural language search query for category matching' })
+  query!: string;
+
+  @ApiPropertyOptional({ description: 'Search language code' })
+  @IsString()
+  @IsNotEmpty()
+  @Optional()
+  language?: string;
+
+  @ApiPropertyOptional({ type: 'number', description: 'Page number', minimum: 1 })
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  @Optional()
+  page?: number;
+}
+
 export class SearchPlacesDto {
   @ApiProperty({ description: 'Place name to search for' })
   @IsString()

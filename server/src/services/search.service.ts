@@ -5,6 +5,7 @@ import { AuthDto } from 'src/dtos/auth.dto';
 import { mapPerson, PersonResponseDto } from 'src/dtos/person.dto';
 import {
     LargeAssetSearchDto,
+    LiteSearchDto,
     mapPlaces,
     MetadataSearchDto,
     PlacesResponseDto,
@@ -28,7 +29,7 @@ import {
     getRawCategoriesByHierarchy,
     shouldIncludeUnmappedCategories,
 } from 'src/utils/category-taxonomy';
-import { isSmartSearchEnabled } from 'src/utils/misc';
+import { isLiteSearchEnabled, isSmartSearchEnabled } from 'src/utils/misc';
 
 @Injectable()
 export class SearchService extends BaseService {
@@ -243,6 +244,36 @@ export class SearchService extends BaseService {
     const size = dto.size || 100;
     const searchOptions = this.withExpandedCategoryFilters(dto);
     const { hasNextPage, items } = await this.searchRepository.searchSmart(
+      { page, size },
+      { ...searchOptions, userIds: await userIds, embedding },
+    );
+
+    return this.mapResponse(items, hasNextPage ? (page + 1).toString() : null, { auth });
+  }
+
+  async searchLite(auth: AuthDto, dto: LiteSearchDto): Promise<SearchResponseDto> {
+    if (dto.visibility === AssetVisibility.Locked) {
+      requireElevatedPermission(auth);
+    }
+
+    const { machineLearning } = await this.getConfig({ withCache: false });
+    if (!isLiteSearchEnabled(machineLearning)) {
+      throw new BadRequestException('Lite search is not enabled');
+    }
+
+    const userIds = this.getUserIdsToSearch(auth);
+
+    const key = machineLearning.liteSearch.modelName + dto.query + (dto.language || '');
+    let embedding = this.embeddingCache.get(key);
+    if (!embedding) {
+      embedding = await this.machineLearningRepository.encodeLiteText(dto.query, machineLearning.liteSearch);
+      this.embeddingCache.set(key, embedding);
+    }
+
+    const page = dto.page ?? 1;
+    const size = dto.size || 100;
+    const searchOptions = this.withExpandedCategoryFilters(dto);
+    const { hasNextPage, items } = await this.searchRepository.searchLite(
       { page, size },
       { ...searchOptions, userIds: await userIds, embedding },
     );

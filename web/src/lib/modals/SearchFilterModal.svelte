@@ -7,7 +7,7 @@
   export type SearchFilter = {
     query: string;
     ocr?: string;
-    queryType: 'smart' | 'metadata' | 'description' | 'ocr';
+    queryType: 'smart' | 'lite' | 'metadata' | 'description' | 'ocr';
     personIds: SvelteSet<string>;
     tagIds: SvelteSet<string> | null;
     category?: string;
@@ -155,6 +155,7 @@
 
     const payload: SmartSearchDto | MetadataSearchDto = {
       query: filter.queryType === 'smart' ? query : undefined,
+      liteQuery: filter.queryType === 'lite' ? query : undefined,
       ocr: filter.queryType === 'ocr' ? query : undefined,
       originalFileName: filter.queryType === 'metadata' ? query : undefined,
       description: filter.queryType === 'description' ? query : undefined,

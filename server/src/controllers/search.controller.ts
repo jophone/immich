@@ -6,6 +6,7 @@ import { AuthDto } from 'src/dtos/auth.dto';
 import { PersonResponseDto } from 'src/dtos/person.dto';
 import {
   LargeAssetSearchDto,
+  LiteSearchDto,
   MetadataSearchDto,
   PlacesResponseDto,
   RandomSearchDto,
@@ -85,6 +86,18 @@ export class SearchController {
   })
   searchSmart(@Auth() auth: AuthDto, @Body() dto: SmartSearchDto): Promise<SearchResponseDto> {
     return this.service.searchSmart(auth, dto);
+  }
+
+  @Post('lite')
+  @Authenticated({ permission: Permission.AssetRead })
+  @HttpCode(HttpStatus.OK)
+  @Endpoint({
+    summary: 'Lite category search',
+    description: 'Search for assets by category using lightweight text embedding model.',
+    history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
+  })
+  searchLite(@Auth() auth: AuthDto, @Body() dto: LiteSearchDto): Promise<SearchResponseDto> {
+    return this.service.searchLite(auth, dto);
   }
 
   @Get('explore')

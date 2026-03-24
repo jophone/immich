@@ -458,6 +458,23 @@ export class AssetJobRepository {
       .stream();
   }
 
+  @GenerateSql({ params: [], stream: true })
+  streamForLiteSearchJob(force?: boolean) {
+    return this.db
+      .selectFrom('asset')
+      .select(['asset.id'])
+      .innerJoin('asset_categories', 'asset_categories.assetId', 'asset.id')
+      .$if(!force, (qb) =>
+        qb.where((eb) =>
+          eb.not((eb) => eb.exists(eb.selectFrom('lite_search').whereRef('assetId', '=', 'asset.id'))),
+        ),
+      )
+      .where('asset.deletedAt', 'is', null)
+      .where('asset.visibility', '!=', AssetVisibility.Hidden)
+      .groupBy('asset.id')
+      .stream();
+  }
+
   @GenerateSql({ params: [DummyValue.DATE], stream: true })
   streamForMigrationJob() {
     return this.db.selectFrom('asset').select(['id']).where('asset.deletedAt', 'is', null).stream();

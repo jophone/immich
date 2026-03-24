@@ -5,6 +5,7 @@ from immich_ml.models.clip.textual import MClipTextualEncoder, OpenClipTextualEn
 from immich_ml.models.clip.visual import OpenClipVisualEncoder
 from immich_ml.models.ocr.detection import TextDetector
 from immich_ml.models.ocr.recognition import TextRecognizer
+from immich_ml.models.text_embedding import EmbeddingGemmaEncoder
 from immich_ml.schemas import ModelSource, ModelTask, ModelType
 
 from .constants import get_model_source
@@ -35,6 +36,9 @@ def get_model_class(model_name: str, model_type: ModelType, model_task: ModelTas
 
         case ModelSource.PADDLE, ModelType.RECOGNITION, ModelTask.OCR:
             return TextRecognizer
+
+        case ModelSource.GOOGLE, ModelType.TEXTUAL, ModelTask.LITE_SEARCH:
+            return EmbeddingGemmaEncoder
 
         case _:
             raise ValueError(f"Unknown model combination: {source}, {model_type}, {model_task}")

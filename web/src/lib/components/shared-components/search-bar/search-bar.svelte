@@ -82,6 +82,9 @@
       case 'smart': {
         return { query: term };
       }
+      case 'lite': {
+        return { liteQuery: term };
+      }
       case 'metadata': {
         return { originalFileName: term };
       }
@@ -195,6 +198,7 @@
     const searchType = localStorage.getItem('searchQueryType');
     switch (searchType) {
       case 'smart':
+      case 'lite':
       case 'metadata':
       case 'description':
       case 'ocr': {
@@ -212,6 +216,9 @@
     switch (currentSearchType) {
       case 'smart': {
         return $t('context');
+      }
+      case 'lite': {
+        return $t('lite_search');
       }
       case 'metadata': {
         return $t('filename');
@@ -234,6 +241,7 @@
 
   const searchTypes = [
     { value: 'smart', label: () => $t('context') },
+    { value: 'lite', label: () => $t('lite_search') },
     { value: 'metadata', label: () => $t('filename') },
     { value: 'description', label: () => $t('description') },
     { value: 'ocr', label: () => $t('ocr') },

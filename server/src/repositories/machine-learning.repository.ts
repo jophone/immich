@@ -16,6 +16,7 @@ export enum ModelTask {
   FACIAL_RECOGNITION = 'facial-recognition',
   SEARCH = 'clip',
   OCR = 'ocr',
+  LITE_SEARCH = 'lite-search',
 }
 
 export enum ModelType {
@@ -43,6 +44,9 @@ export type ClipVisualResponse = { [ModelTask.SEARCH]: string } & VisualResponse
 
 export type ClipTextualRequest = { [ModelTask.SEARCH]: { [ModelType.TEXTUAL]: ModelOptions } };
 export type ClipTextualResponse = { [ModelTask.SEARCH]: string };
+
+export type LiteSearchConfig = { modelName: string; localModelPath: string };
+export type LiteSearchResponse = { embedding: string };
 
 export type OCR = {
   text: string[];
@@ -250,6 +254,16 @@ export class MachineLearningRepository {
 
     const data = await this.postWithFailover<ClassificationResponse>('/classify', formData, 'classify');
     return data.classification;
+  }
+
+  async encodeLiteText(text: string, config: LiteSearchConfig): Promise<string> {
+    const formData = new FormData();
+    formData.append('text', text);
+    formData.append('model_name', config.modelName);
+    formData.append('local_model_path', config.localModelPath);
+
+    const data = await this.postWithFailover<LiteSearchResponse>('/encode-lite-text', formData, 'encode-lite-text');
+    return data.embedding;
   }
 
   private async getFormData(payload: ModelPayload, config: MachineLearningRequest): Promise<FormData> {

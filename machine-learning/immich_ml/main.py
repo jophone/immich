@@ -208,6 +208,21 @@ async def predict(
     return ORJSONResponse(response)
 
 
+@app.post("/encode-lite-text", dependencies=[Depends(update_state)])
+async def encode_lite_text(
+    text: str = Form(),
+    model_name: str = Form(default="google/embeddinggemma-300m"),
+    local_model_path: str = Form(default="/root/snap/model/embeddinggemma-300m"),
+) -> Any:
+    model = await model_cache.get(
+        model_name, ModelType.TEXTUAL, ModelTask.LITE_SEARCH,
+        ttl=settings.model_ttl, local_model_path=local_model_path,
+    )
+    model = await load(model)
+    embedding: str = await run(model.predict, text)
+    return ORJSONResponse({"embedding": embedding})
+
+
 @app.post("/classify", dependencies=[Depends(update_state)])
 async def classify(
     image: bytes = File(),

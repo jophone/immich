@@ -7,7 +7,7 @@ import { AssetVisibility, JobName, JobStatus, Permission, QueueName } from 'src/
 import { BaseService } from 'src/services/base.service';
 import { JobItem, JobOf } from 'src/types';
 import { getCategoryHierarchy } from 'src/utils/category-taxonomy';
-import { isClassificationEnabled } from 'src/utils/misc';
+import { isClassificationEnabled, isLiteSearchEnabled } from 'src/utils/misc';
 
 @Injectable()
 export class ClassificationService extends BaseService {
@@ -82,6 +82,11 @@ export class ClassificationService extends BaseService {
 
     await this.categoryRepository.upsert(id, categories);
     await this.assetRepository.upsertJobStatus({ assetId: id, classifiedAt: new Date() });
+
+    // Trigger lite search embedding generation after classification
+    if (isLiteSearchEnabled(machineLearning)) {
+      await this.jobRepository.queue({ name: JobName.LiteSearch, data: { id } });
+    }
 
     this.logger.debug(`Classified asset ${id} with ${results.length} categories`);
     return JobStatus.Success;

@@ -388,6 +388,10 @@ export type JobItem =
   | { name: JobName.ClassificationQueueAll; data: IBaseJob }
   | { name: JobName.Classification; data: IEntityJob }
 
+  // Lite Search
+  | { name: JobName.LiteSearchQueueAll; data: IBaseJob }
+  | { name: JobName.LiteSearch; data: IEntityJob }
+
   // Workflow
   | { name: JobName.WorkflowRun; data: IWorkflowJob }
 

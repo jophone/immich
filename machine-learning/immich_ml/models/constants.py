@@ -88,6 +88,10 @@ _PADDLE_MODELS = {
     "TH__PP-OCRv5_mobile",
 }
 
+_GOOGLE_MODELS = {
+    "embeddinggemma-300m",
+}
+
 SUPPORTED_PROVIDERS = [
     "CUDAExecutionProvider",
     "MIGraphXExecutionProvider",
@@ -174,5 +178,8 @@ def get_model_source(model_name: str) -> ModelSource | None:
 
     if cleaned_name in _PADDLE_MODELS:
         return ModelSource.PADDLE
+
+    if cleaned_name in _GOOGLE_MODELS:
+        return ModelSource.GOOGLE
 
     return None

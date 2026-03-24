@@ -294,6 +294,11 @@ export const defaults = Object.freeze<SystemConfig>({
         'wedding', 'birthday', 'travel', 'art', 'abstract',
       ],
     },
+    liteSearch: {
+      enabled: true,
+      modelName: 'google/embeddinggemma-300m',
+      localModelPath: '/root/snap/model/embeddinggemma-300m',
+    },
   },
   map: {
     enabled: true,

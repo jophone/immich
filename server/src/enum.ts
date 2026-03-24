@@ -568,6 +568,7 @@ export enum QueueName {
   BackupDatabase = 'backupDatabase',
   Ocr = 'ocr',
   Classification = 'classification',
+  LiteSearch = 'liteSearch',
   Workflow = 'workflow',
   Editor = 'editor',
 }
@@ -661,6 +662,10 @@ export enum JobName {
   ClassificationQueueAll = 'ClassificationQueueAll',
   Classification = 'Classification',
 
+  // Lite Search
+  LiteSearchQueueAll = 'LiteSearchQueueAll',
+  LiteSearch = 'LiteSearch',
+
   // Workflow
   WorkflowRun = 'WorkflowRun',
 }
@@ -690,6 +695,7 @@ export enum QueueCleanType {
 export enum VectorIndex {
   Clip = 'clip_index',
   Face = 'face_index',
+  LiteSearch = 'lite_search_index',
 }
 
 export enum DatabaseLock {

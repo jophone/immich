@@ -10,6 +10,12 @@ dev-update:
 dev-scale:
 	@trap 'make dev-down' EXIT; COMPOSE_BAKE=true docker compose -f ./docker/docker-compose.dev.yml up --build -V --scale immich-server=3 --remove-orphans
 
+edge:
+	IMMICH_CONFIG_FILE=./docker/immich-edge.config.yml $(MAKE) dev
+
+edge-update:
+	IMMICH_CONFIG_FILE=./docker/immich-edge.config.yml $(MAKE) dev-update
+
 dev-docs:
 	npm --prefix docs run start
 
