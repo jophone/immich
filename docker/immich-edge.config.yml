@@ -5,9 +5,9 @@ machineLearning:
   duplicateDetection:
     enabled: false
   facialRecognition:
-    enabled: false
+    enabled: true
   ocr:
-    enabled: false
+    enabled: true
   classification:
     enabled: true
     modelName: "YOLO26l-cls"

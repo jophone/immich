@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Edge device local development startup — disables CLIP/face/OCR, enables classification + lite search
+# Edge device local development startup — disables CLIP, enables face/OCR/classification + lite search
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
