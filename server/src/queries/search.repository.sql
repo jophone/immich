@@ -243,6 +243,31 @@ from
 order by
   "asset_exif"."city"
 
+-- SearchRepository.searchLite
+begin
+set
+  local vchordrq.probes = 1
+select
+  "asset".*
+from
+  "asset"
+  inner join "asset_exif" on "asset"."id" = "asset_exif"."assetId"
+  inner join "lite_search" on "asset"."id" = "lite_search"."assetId"
+where
+  "asset"."visibility" = $1
+  and "asset"."fileCreatedAt" >= $2
+  and "asset_exif"."lensModel" = $3
+  and "asset"."ownerId" = any ($4::uuid[])
+  and "asset"."isFavorite" = $5
+  and "asset"."deletedAt" is null
+order by
+  lite_search.embedding <=> $6
+limit
+  $7
+offset
+  $8
+commit
+
 -- SearchRepository.getStates
 select distinct
   on ("state") "state"

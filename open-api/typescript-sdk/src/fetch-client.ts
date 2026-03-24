@@ -1684,6 +1684,116 @@ export type SearchExploreResponseDto = {
     fieldName: string;
     items: SearchExploreItem[];
 };
+export type LiteSearchDto = {
+    /** Filter by album IDs */
+    albumIds?: string[];
+    /** Filter by classification category */
+    category?: string;
+    /** Filter by level 1 category ID */
+    categoryL1?: string;
+    /** Filter by level 2 category ID */
+    categoryL2?: string;
+    /** Filter by city name */
+    city?: string | null;
+    /** Filter by country name */
+    country?: string | null;
+    /** Filter by creation date (after) */
+    createdAfter?: string;
+    /** Filter by creation date (before) */
+    createdBefore?: string;
+    /** Device ID to filter by */
+    deviceId?: string;
+    /** Filter by encoded status */
+    isEncoded?: boolean;
+    /** Filter by favorite status */
+    isFavorite?: boolean;
+    /** Filter by motion photo status */
+    isMotion?: boolean;
+    /** Filter assets not in any album */
+    isNotInAlbum?: boolean;
+    /** Filter by offline status */
+    isOffline?: boolean;
+    /** Search language code */
+    language?: string;
+    /** Filter by lens model */
+    lensModel?: string | null;
+    /** Library ID to filter by */
+    libraryId?: string | null;
+    /** Filter by camera make */
+    make?: string;
+    /** Filter by camera model */
+    model?: string | null;
+    /** Filter by OCR text content */
+    ocr?: string;
+    /** Page number */
+    page?: number;
+    /** Filter by person IDs */
+    personIds?: string[];
+    /** Natural language search query for category matching */
+    query: string;
+    /** Filter by rating [1-5], or null for unrated */
+    rating?: number | null;
+    /** Number of results to return */
+    size?: number;
+    /** Filter by state/province name */
+    state?: string | null;
+    /** Filter by tag IDs */
+    tagIds?: string[] | null;
+    /** Filter by taken date (after) */
+    takenAfter?: string;
+    /** Filter by taken date (before) */
+    takenBefore?: string;
+    /** Filter by trash date (after) */
+    trashedAfter?: string;
+    /** Filter by trash date (before) */
+    trashedBefore?: string;
+    /** Asset type filter */
+    "type"?: AssetTypeEnum;
+    /** Filter by update date (after) */
+    updatedAfter?: string;
+    /** Filter by update date (before) */
+    updatedBefore?: string;
+    /** Filter by visibility */
+    visibility?: AssetVisibility;
+    /** Include deleted assets */
+    withDeleted?: boolean;
+    /** Include EXIF data in response */
+    withExif?: boolean;
+};
+export type SearchFacetCountResponseDto = {
+    /** Number of assets with this facet value */
+    count: number;
+    /** Facet value */
+    value: string;
+};
+export type SearchFacetResponseDto = {
+    /** Facet counts */
+    counts: SearchFacetCountResponseDto[];
+    /** Facet field name */
+    fieldName: string;
+};
+export type SearchAlbumResponseDto = {
+    /** Number of albums in this page */
+    count: number;
+    facets: SearchFacetResponseDto[];
+    items: AlbumResponseDto[];
+    /** Total number of matching albums */
+    total: number;
+};
+export type SearchAssetResponseDto = {
+    /** Number of assets in this page */
+    count: number;
+    facets: SearchFacetResponseDto[];
+    items: AssetResponseDto[];
+    /** Next page token */
+    nextPage: string | null;
+    /** Total number of matching assets */
+    total: number;
+};
+export type SearchResponseDto = {
+    albums: SearchAlbumResponseDto;
+    assets: SearchAssetResponseDto;
+};
 export type MetadataSearchDto = {
     /** Filter by album IDs */
     albumIds?: string[];
@@ -1779,40 +1889,6 @@ export type MetadataSearchDto = {
     withPeople?: boolean;
     /** Include stacked assets */
     withStacked?: boolean;
-};
-export type SearchFacetCountResponseDto = {
-    /** Number of assets with this facet value */
-    count: number;
-    /** Facet value */
-    value: string;
-};
-export type SearchFacetResponseDto = {
-    /** Facet counts */
-    counts: SearchFacetCountResponseDto[];
-    /** Facet field name */
-    fieldName: string;
-};
-export type SearchAlbumResponseDto = {
-    /** Number of albums in this page */
-    count: number;
-    facets: SearchFacetResponseDto[];
-    items: AlbumResponseDto[];
-    /** Total number of matching albums */
-    total: number;
-};
-export type SearchAssetResponseDto = {
-    /** Number of assets in this page */
-    count: number;
-    facets: SearchFacetResponseDto[];
-    items: AssetResponseDto[];
-    /** Next page token */
-    nextPage: string | null;
-    /** Total number of matching assets */
-    total: number;
-};
-export type SearchResponseDto = {
-    albums: SearchAlbumResponseDto;
-    assets: SearchAssetResponseDto;
 };
 export type PlacesResponseDto = {
     /** Administrative level 1 name (state/province) */
@@ -1971,74 +2047,6 @@ export type SmartSearchDto = {
     updatedAfter?: string;
     /** Filter by update date (before) */
     updatedBefore?: string;
-    /** Filter by visibility */
-    visibility?: AssetVisibility;
-    /** Include deleted assets */
-    withDeleted?: boolean;
-    /** Include EXIF data in response */
-    withExif?: boolean;
-};
-export type LiteSearchDto = {
-    /** Filter by album IDs */
-    albumIds?: string[];
-    /** Filter by classification category */
-    category?: string;
-    /** Filter by level 1 category ID */
-    categoryL1?: string;
-    /** Filter by level 2 category ID */
-    categoryL2?: string;
-    /** Filter by city name */
-    city?: string | null;
-    /** Filter by country name */
-    country?: string | null;
-    /** Filter by creation date (after) */
-    createdAfter?: string;
-    /** Filter by creation date (before) */
-    createdBefore?: string;
-    /** Device ID to filter by */
-    deviceId?: string;
-    /** Filter by encoded status */
-    isEncoded?: boolean;
-    /** Filter by favorite status */
-    isFavorite?: boolean;
-    /** Filter by motion photo status */
-    isMotion?: boolean;
-    /** Filter assets not in any album */
-    isNotInAlbum?: boolean;
-    /** Filter by offline status */
-    isOffline?: boolean;
-    /** Search language code */
-    language?: string;
-    /** Filter by lens model */
-    lensModel?: string | null;
-    /** Library ID to filter by */
-    libraryId?: string | null;
-    /** Filter by camera make */
-    make?: string;
-    /** Filter by camera model */
-    model?: string | null;
-    /** Filter by OCR text content */
-    ocr?: string;
-    /** Page number */
-    page?: number;
-    /** Filter by person IDs */
-    personIds?: string[];
-    /** Natural language search query for category matching */
-    query: string;
-    /** Filter by rating [1-5], or null for unrated */
-    rating?: number | null;
-    /** Number of results to return */
-    size?: number;
-    /** Filter by state/province name */
-    state?: string | null;
-    /** Filter by tag IDs */
-    tagIds?: string[] | null;
-    /** Filter by taken date (after) */
-    takenAfter?: string;
-    /** Filter by taken date (before) */
-    takenBefore?: string;
-    /** Asset type filter */
-    "type"?: AssetTypeEnum;
     /** Filter by visibility */
     visibility?: AssetVisibility;
     /** Include deleted assets */
@@ -2205,6 +2213,8 @@ export type ServerFeaturesDto = {
     facialRecognition: boolean;
     /** Whether face import is enabled */
     importFaces: boolean;
+    /** Whether lightweight category-based search is enabled */
+    liteSearch: boolean;
     /** Whether map feature is enabled */
     map: boolean;
     /** Whether OAuth is enabled */
@@ -2223,8 +2233,6 @@ export type ServerFeaturesDto = {
     sidecar: boolean;
     /** Whether smart search is enabled */
     smartSearch: boolean;
-    /** Whether lightweight search is enabled */
-    liteSearch: boolean;
     /** Whether trash feature is enabled */
     trash: boolean;
 };
@@ -5676,6 +5684,21 @@ export function searchLargeAssets({ albumIds, category, categoryL1, categoryL2, 
     }));
 }
 /**
+ * Lite category search
+ */
+export function searchLite({ liteSearchDto }: {
+    liteSearchDto: LiteSearchDto;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: SearchResponseDto;
+    }>("/search/lite", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: liteSearchDto
+    })));
+}
+/**
  * Search assets by metadata
  */
 export function searchAssets({ metadataSearchDto }: {
@@ -5750,21 +5773,6 @@ export function searchSmart({ smartSearchDto }: {
         ...opts,
         method: "POST",
         body: smartSearchDto
-    })));
-}
-/**
- * Lite category search
- */
-export function searchLite({ liteSearchDto }: {
-    liteSearchDto: LiteSearchDto;
-}, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: SearchResponseDto;
-    }>("/search/lite", oazapfts.json({
-        ...opts,
-        method: "POST",
-        body: liteSearchDto
     })));
 }
 /**
@@ -7304,6 +7312,7 @@ export enum QueueName {
     BackupDatabase = "backupDatabase",
     Ocr = "ocr",
     Classification = "classification",
+    LiteSearch = "liteSearch",
     Workflow = "workflow",
     Editor = "editor"
 }
@@ -7401,6 +7410,8 @@ export enum JobName {
     Ocr = "Ocr",
     ClassificationQueueAll = "ClassificationQueueAll",
     Classification = "Classification",
+    LiteSearchQueueAll = "LiteSearchQueueAll",
+    LiteSearch = "LiteSearch",
     WorkflowRun = "WorkflowRun"
 }
 export enum SearchSuggestionType {

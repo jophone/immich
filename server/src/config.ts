@@ -1,17 +1,17 @@
 import { CronExpression } from '@nestjs/schedule';
 import {
-  AudioCodec,
-  Colorspace,
-  CQMode,
-  ImageFormat,
-  LogLevel,
-  OAuthTokenEndpointAuthMethod,
-  QueueName,
-  ToneMapping,
-  TranscodeHardwareAcceleration,
-  TranscodePolicy,
-  VideoCodec,
-  VideoContainer,
+    AudioCodec,
+    Colorspace,
+    CQMode,
+    ImageFormat,
+    LogLevel,
+    OAuthTokenEndpointAuthMethod,
+    QueueName,
+    ToneMapping,
+    TranscodeHardwareAcceleration,
+    TranscodePolicy,
+    VideoCodec,
+    VideoContainer,
 } from 'src/enum';
 import { ConcurrentQueueName, FullsizeImageOptions, ImageOptions } from 'src/types';
 
@@ -87,6 +87,11 @@ export type SystemConfig = {
       minScore: number;
       maxResults: number;
       categories: string[];
+    };
+    liteSearch: {
+      enabled: boolean;
+      modelName: string;
+      localModelPath: string;
     };
   };
   map: {
@@ -243,6 +248,7 @@ export const defaults = Object.freeze<SystemConfig>({
     [QueueName.Notification]: { concurrency: 5 },
     [QueueName.Ocr]: { concurrency: 1 },
     [QueueName.Classification]: { concurrency: 1 },
+    [QueueName.LiteSearch]: { concurrency: 1 },
     [QueueName.Workflow]: { concurrency: 5 },
     [QueueName.Editor]: { concurrency: 2 },
   },

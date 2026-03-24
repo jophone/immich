@@ -9746,6 +9746,66 @@
         "x-immich-state": "Stable"
       }
     },
+    "/search/lite": {
+      "post": {
+        "description": "Search for assets by category using lightweight text embedding model.",
+        "operationId": "searchLite",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiteSearchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Lite category search",
+        "tags": [
+          "Search"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-permission": "asset.read",
+        "x-immich-state": "Stable"
+      }
+    },
     "/search/metadata": {
       "post": {
         "description": "Search for assets based on various metadata criteria.",
@@ -10043,66 +10103,6 @@
           }
         ],
         "summary": "Smart asset search",
-        "tags": [
-          "Search"
-        ],
-        "x-immich-history": [
-          {
-            "version": "v1",
-            "state": "Added"
-          },
-          {
-            "version": "v1",
-            "state": "Beta"
-          },
-          {
-            "version": "v2",
-            "state": "Stable"
-          }
-        ],
-        "x-immich-permission": "asset.read",
-        "x-immich-state": "Stable"
-      }
-    },
-    "/search/lite": {
-      "post": {
-        "description": "Search for assets by category using lightweight text embedding model.",
-        "operationId": "searchLite",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LiteSearchDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchResponseDto"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          },
-          {
-            "cookie": []
-          },
-          {
-            "api_key": []
-          }
-        ],
-        "summary": "Lite category search",
         "tags": [
           "Search"
         ],
@@ -18512,6 +18512,8 @@
           "Ocr",
           "ClassificationQueueAll",
           "Classification",
+          "LiteSearchQueueAll",
+          "LiteSearch",
           "WorkflowRun"
         ],
         "type": "string"
@@ -18662,6 +18664,242 @@
           "activatedAt",
           "activationKey",
           "licenseKey"
+        ],
+        "type": "object"
+      },
+      "LiteSearchConfig": {
+        "properties": {
+          "enabled": {
+            "description": "Whether the task is enabled",
+            "type": "boolean"
+          },
+          "localModelPath": {
+            "description": "Local path to a pre-downloaded model directory",
+            "type": "string"
+          },
+          "modelName": {
+            "description": "Name of the model to use",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "localModelPath",
+          "modelName"
+        ],
+        "type": "object"
+      },
+      "LiteSearchDto": {
+        "properties": {
+          "albumIds": {
+            "description": "Filter by album IDs",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "category": {
+            "description": "Filter by classification category",
+            "type": "string"
+          },
+          "categoryL1": {
+            "description": "Filter by level 1 category ID",
+            "type": "string"
+          },
+          "categoryL2": {
+            "description": "Filter by level 2 category ID",
+            "type": "string"
+          },
+          "city": {
+            "description": "Filter by city name",
+            "nullable": true,
+            "type": "string"
+          },
+          "country": {
+            "description": "Filter by country name",
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAfter": {
+            "description": "Filter by creation date (after)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBefore": {
+            "description": "Filter by creation date (before)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "deviceId": {
+            "description": "Device ID to filter by",
+            "type": "string"
+          },
+          "isEncoded": {
+            "description": "Filter by encoded status",
+            "type": "boolean"
+          },
+          "isFavorite": {
+            "description": "Filter by favorite status",
+            "type": "boolean"
+          },
+          "isMotion": {
+            "description": "Filter by motion photo status",
+            "type": "boolean"
+          },
+          "isNotInAlbum": {
+            "description": "Filter assets not in any album",
+            "type": "boolean"
+          },
+          "isOffline": {
+            "description": "Filter by offline status",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Search language code",
+            "type": "string"
+          },
+          "lensModel": {
+            "description": "Filter by lens model",
+            "nullable": true,
+            "type": "string"
+          },
+          "libraryId": {
+            "description": "Library ID to filter by",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "make": {
+            "description": "Filter by camera make",
+            "type": "string"
+          },
+          "model": {
+            "description": "Filter by camera model",
+            "nullable": true,
+            "type": "string"
+          },
+          "ocr": {
+            "description": "Filter by OCR text content",
+            "type": "string"
+          },
+          "page": {
+            "description": "Page number",
+            "minimum": 1,
+            "type": "number"
+          },
+          "personIds": {
+            "description": "Filter by person IDs",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "query": {
+            "description": "Natural language search query for category matching",
+            "type": "string"
+          },
+          "rating": {
+            "description": "Filter by rating [1-5], or null for unrated",
+            "maximum": 5,
+            "minimum": -1,
+            "nullable": true,
+            "type": "number",
+            "x-immich-history": [
+              {
+                "version": "v1",
+                "state": "Added"
+              },
+              {
+                "version": "v2",
+                "state": "Stable"
+              },
+              {
+                "version": "v2.6.0",
+                "state": "Updated",
+                "description": "Using -1 as a rating is deprecated and will be removed in the next major version."
+              }
+            ],
+            "x-immich-state": "Stable"
+          },
+          "size": {
+            "description": "Number of results to return",
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "number"
+          },
+          "state": {
+            "description": "Filter by state/province name",
+            "nullable": true,
+            "type": "string"
+          },
+          "tagIds": {
+            "description": "Filter by tag IDs",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "takenAfter": {
+            "description": "Filter by taken date (after)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "takenBefore": {
+            "description": "Filter by taken date (before)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "trashedAfter": {
+            "description": "Filter by trash date (after)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "trashedBefore": {
+            "description": "Filter by trash date (before)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetTypeEnum"
+              }
+            ],
+            "description": "Asset type filter"
+          },
+          "updatedAfter": {
+            "description": "Filter by update date (after)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBefore": {
+            "description": "Filter by update date (before)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetVisibility"
+              }
+            ],
+            "description": "Filter by visibility"
+          },
+          "withDeleted": {
+            "description": "Include deleted assets",
+            "type": "boolean"
+          },
+          "withExif": {
+            "description": "Include EXIF data in response",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "query"
         ],
         "type": "object"
       },
@@ -20829,6 +21067,7 @@
           "backupDatabase",
           "ocr",
           "classification",
+          "liteSearch",
           "workflow",
           "editor"
         ],
@@ -20963,6 +21202,9 @@
           "library": {
             "$ref": "#/components/schemas/QueueResponseLegacyDto"
           },
+          "liteSearch": {
+            "$ref": "#/components/schemas/QueueResponseLegacyDto"
+          },
           "metadataExtraction": {
             "$ref": "#/components/schemas/QueueResponseLegacyDto"
           },
@@ -21006,6 +21248,7 @@
           "faceDetection",
           "facialRecognition",
           "library",
+          "liteSearch",
           "metadataExtraction",
           "migration",
           "notifications",
@@ -21696,6 +21939,10 @@
             "description": "Whether face import is enabled",
             "type": "boolean"
           },
+          "liteSearch": {
+            "description": "Whether lightweight category-based search is enabled",
+            "type": "boolean"
+          },
           "map": {
             "description": "Whether map feature is enabled",
             "type": "boolean"
@@ -21730,10 +21977,6 @@
           },
           "smartSearch": {
             "description": "Whether smart search is enabled",
-            "type": "boolean"
-          },
-          "liteSearch": {
-            "description": "Whether lightweight search is enabled",
             "type": "boolean"
           },
           "trash": {
@@ -22427,36 +22670,6 @@
           "email",
           "name",
           "password"
-        ],
-        "type": "object"
-      },
-      "LiteSearchDto": {
-        "properties": {
-          "query": {
-            "description": "Natural language search query for category matching",
-            "type": "string"
-          },
-          "language": {
-            "description": "Search language code",
-            "type": "string"
-          },
-          "page": {
-            "description": "Page number",
-            "minimum": 1,
-            "type": "integer"
-          },
-          "size": {
-            "description": "Number of results to return",
-            "maximum": 1000,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "visibility": {
-            "$ref": "#/components/schemas/AssetVisibility"
-          }
-        },
-        "required": [
-          "query"
         ],
         "type": "object"
       },
@@ -24618,6 +24831,9 @@
           "library": {
             "$ref": "#/components/schemas/JobSettingsDto"
           },
+          "liteSearch": {
+            "$ref": "#/components/schemas/JobSettingsDto"
+          },
           "metadataExtraction": {
             "$ref": "#/components/schemas/JobSettingsDto"
           },
@@ -24655,6 +24871,7 @@
           "editor",
           "faceDetection",
           "library",
+          "liteSearch",
           "metadataExtraction",
           "migration",
           "notifications",
@@ -24752,6 +24969,9 @@
           "facialRecognition": {
             "$ref": "#/components/schemas/FacialRecognitionConfig"
           },
+          "liteSearch": {
+            "$ref": "#/components/schemas/LiteSearchConfig"
+          },
           "ocr": {
             "$ref": "#/components/schemas/OcrConfig"
           },
@@ -24772,6 +24992,7 @@
           "duplicateDetection",
           "enabled",
           "facialRecognition",
+          "liteSearch",
           "ocr",
           "urls"
         ],

@@ -102,3 +102,10 @@ export class ClassificationConfig extends ModelConfig {
   @ApiProperty({ type: 'array', items: { type: 'string' }, minItems: 1 })
   categories!: string[];
 }
+
+export class LiteSearchConfig extends ModelConfig {
+  @ApiProperty({ description: 'Local path to a pre-downloaded model directory' })
+  @IsString()
+  @IsNotEmpty()
+  localModelPath!: string;
+}

@@ -447,7 +447,7 @@ searchLite(@Auth() auth: AuthDto, @Body() dto: LiteSearchDto): Promise<SearchRes
 ### 4.5 重新生成 SDK
 
 ```bash
-make open-api && make sql
+make open-api-typescript && make sql
 ```
 
 ---
@@ -621,7 +621,7 @@ edge-update:
 1. Phase 1 (ML Service) → 测试 `/encode-lite-text` 端点
 2. Phase 2 (Server 数据层) → 迁移创建表
 3. Phase 3 (Embedding 生成) → 测试分类后自动生成 embedding
-4. Phase 4 (搜索端点) → `make open-api && make sql` → API 测试
+4. Phase 4 (搜索端点) → `make open-api-typescript && make sql` → API 测试
 5. Phase 5 (Web 前端) → UI 测试
 6. Phase 6 (启动脚本) → 端到端验证
 

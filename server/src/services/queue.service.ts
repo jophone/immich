@@ -248,6 +248,10 @@ export class QueueService extends BaseService {
         return this.jobRepository.queue({ name: JobName.ClassificationQueueAll, data: { force } });
       }
 
+      case QueueName.LiteSearch: {
+        return this.jobRepository.queue({ name: JobName.LiteSearchQueueAll, data: { force } });
+      }
+
       default: {
         throw new BadRequestException(`Invalid job name: ${name}`);
       }

@@ -1,40 +1,41 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
-  ArrayMinSize,
-  IsInt,
-  IsNotEmpty,
-  IsNumber,
-  IsObject,
-  IsPositive,
-  IsString,
-  IsUrl,
-  Max,
-  Min,
-  ValidateIf,
-  ValidateNested,
+    ArrayMinSize,
+    IsInt,
+    IsNotEmpty,
+    IsNumber,
+    IsObject,
+    IsPositive,
+    IsString,
+    IsUrl,
+    Max,
+    Min,
+    ValidateIf,
+    ValidateNested,
 } from 'class-validator';
 import { SystemConfig } from 'src/config';
 import {
-  ClassificationConfig,
-  CLIPConfig,
-  DuplicateDetectionConfig,
-  FacialRecognitionConfig,
-  OcrConfig,
+    ClassificationConfig,
+    CLIPConfig,
+    DuplicateDetectionConfig,
+    FacialRecognitionConfig,
+    LiteSearchConfig,
+    OcrConfig,
 } from 'src/dtos/model-config.dto';
 import {
-  AudioCodec,
-  Colorspace,
-  CQMode,
-  ImageFormat,
-  LogLevel,
-  OAuthTokenEndpointAuthMethod,
-  QueueName,
-  ToneMapping,
-  TranscodeHardwareAcceleration,
-  TranscodePolicy,
-  VideoCodec,
-  VideoContainer,
+    AudioCodec,
+    Colorspace,
+    CQMode,
+    ImageFormat,
+    LogLevel,
+    OAuthTokenEndpointAuthMethod,
+    QueueName,
+    ToneMapping,
+    TranscodeHardwareAcceleration,
+    TranscodePolicy,
+    VideoCodec,
+    VideoContainer,
 } from 'src/enum';
 import { ConcurrentQueueName } from 'src/types';
 import { IsCronExpression, IsDateStringFormat, Optional, ValidateBoolean, ValidateEnum } from 'src/validation';
@@ -243,6 +244,12 @@ class SystemConfigJobDto implements Record<ConcurrentQueueName, JobSettingsDto> 
   @ValidateNested()
   @IsObject()
   @Type(() => JobSettingsDto)
+  [QueueName.LiteSearch]!: JobSettingsDto;
+
+  @ApiProperty({ type: JobSettingsDto, description: undefined })
+  @ValidateNested()
+  @IsObject()
+  @Type(() => JobSettingsDto)
   [QueueName.Sidecar]!: JobSettingsDto;
 
   @ApiProperty({ type: JobSettingsDto, description: undefined })
@@ -356,6 +363,11 @@ class SystemConfigMachineLearningDto {
   @ValidateNested()
   @IsObject()
   classification!: ClassificationConfig;
+
+  @Type(() => LiteSearchConfig)
+  @ValidateNested()
+  @IsObject()
+  liteSearch!: LiteSearchConfig;
 }
 
 enum MapTheme {

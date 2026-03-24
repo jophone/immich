@@ -4,8 +4,13 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     CREATE TABLE "lite_search" (
       "assetId" uuid NOT NULL,
-      "embedding" vector(768) STORAGE EXTERNAL
+      "embedding" vector(768)
     )
+  `.execute(db);
+
+  await sql`
+    ALTER TABLE "lite_search"
+      ALTER COLUMN "embedding" SET STORAGE EXTERNAL
   `.execute(db);
 
   await sql`

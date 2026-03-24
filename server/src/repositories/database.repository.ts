@@ -7,14 +7,14 @@ import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import semver from 'semver';
 import {
-  EXTENSION_NAMES,
-  POSTGRES_VERSION_RANGE,
-  VECTOR_EXTENSIONS,
-  VECTOR_INDEX_TABLES,
-  VECTOR_VERSION_RANGE,
-  VECTORCHORD_LIST_SLACK_FACTOR,
-  VECTORCHORD_VERSION_RANGE,
-  VECTORS_VERSION_RANGE,
+    EXTENSION_NAMES,
+    POSTGRES_VERSION_RANGE,
+    VECTOR_EXTENSIONS,
+    VECTOR_INDEX_TABLES,
+    VECTOR_VERSION_RANGE,
+    VECTORCHORD_LIST_SLACK_FACTOR,
+    VECTORCHORD_VERSION_RANGE,
+    VECTORS_VERSION_RANGE,
 } from 'src/constants';
 import { GenerateSql } from 'src/decorators';
 import { DatabaseExtension, DatabaseLock, VectorIndex } from 'src/enum';
@@ -51,6 +51,7 @@ export async function getVectorExtension(runner: Kysely<DB>): Promise<VectorExte
 export const probes: Record<VectorIndex, number> = {
   [VectorIndex.Clip]: 1,
   [VectorIndex.Face]: 1,
+  [VectorIndex.LiteSearch]: 1,
 };
 
 @Injectable()

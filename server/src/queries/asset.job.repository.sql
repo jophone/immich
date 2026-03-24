@@ -693,6 +693,53 @@ where
   and "asset"."deletedAt" is null
   and "asset"."visibility" != $1
 
+-- AssetJobRepository.getForClassification
+select
+  "asset"."visibility",
+  (
+    select
+      "asset_file"."path"
+    from
+      "asset_file"
+    where
+      "asset_file"."assetId" = "asset"."id"
+      and "asset_file"."type" = $1
+  ) as "previewFile"
+from
+  "asset"
+where
+  "asset"."id" = $2
+
+-- AssetJobRepository.streamForClassificationJob
+select
+  "asset"."id"
+from
+  "asset"
+  inner join "asset_job_status" on "asset_job_status"."assetId" = "asset"."id"
+where
+  "asset_job_status"."classifiedAt" is null
+  and "asset"."deletedAt" is null
+  and "asset"."visibility" != $1
+
+-- AssetJobRepository.streamForLiteSearchJob
+select
+  "asset"."id"
+from
+  "asset"
+  inner join "asset_categories" on "asset_categories"."assetId" = "asset"."id"
+where
+  not exists (
+    select
+    from
+      "lite_search"
+    where
+      "assetId" = "asset"."id"
+  )
+  and "asset"."deletedAt" is null
+  and "asset"."visibility" != $1
+group by
+  "asset"."id"
+
 -- AssetJobRepository.streamForMigrationJob
 select
   "id"
