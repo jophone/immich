@@ -97,7 +97,7 @@ describe(SearchService.name, () => {
       });
       mocks.category.getTopCategoriesWithAsset.mockResolvedValue({
         fieldName: 'category',
-        items: [{ value: 'tabby cat', data: catAsset.id }],
+        items: [{ value: 'tabby', data: catAsset.id }],
       });
       mocks.asset.getByIdsWithAllRelationsButStacks.mockResolvedValue([cityAsset as never, catAsset as never]);
 
@@ -368,7 +368,7 @@ describe(SearchService.name, () => {
         { page: 1, size: 10 },
         expect.objectContaining({
           categoryL1: 'animals',
-          categoryNames: expect.arrayContaining(['tabby_cat']),
+          categoryNames: expect.arrayContaining(['tabby']),
           userIds: [authStub.user1.user.id],
         }),
       );
@@ -389,7 +389,7 @@ describe(SearchService.name, () => {
           categoryL1: 'other',
           categoryL2: 'other_misc',
           categoryIncludeUnmapped: true,
-          categoryKnownNames: expect.arrayContaining(['tabby_cat']),
+          categoryKnownNames: expect.arrayContaining(['tabby']),
           userIds: [authStub.user1.user.id],
         }),
       );

@@ -72,3 +72,6 @@
 食品与饮品,蔬果食材,22,cabbage（卷心菜），broccoli（西兰花），cauliflower（花椰菜），zucchini（西葫芦），spaghetti_squash（意面南瓜），acorn_squash（绿色小南瓜），butternut_squash（南瓜），cucumber（黄瓜），artichoke（洋蓟），bell_pepper（甜椒），cardoon（刺棘蓟），mushroom（蘑菇），Granny_Smith（澳洲青苹），strawberry（草莓），orange（橘子），lemon（柠檬），fig（无花果），pineapple（菠萝），banana（香蕉），jackfruit（菠萝蜜），custard_apple（番荔枝），pomegranate（石榴）,,,,,,,,,,,,,,,,
 ,食物,20,honeycomb（蜂窝），guacamole（牛油果酱），consomme（清炖肉汤），hot_pot（火锅），trifle（果酱松糕），ice_cream（冰淇淋），ice_pop（冰棍），baguette（法棍），bagel（百吉饼），pretzel（椒盐脆饼），cheeseburger（芝士汉堡），hot_dog（热狗），mashed_potato（土豆泥），carbonara（培根蛋酱意大利面），chocolate_syrup（巧克力酱），dough（面团），meatloaf（肉卷），pizza（披萨），pot_pie（馅饼），burrito（卷饼）,,,,,,,,,,,,,,,,
 ,饮品,3,red_wine（红葡萄酒），espresso（意式浓缩咖啡），eggnog（蛋酒）,,,,,,,,,,,,,,,,
+人/宠物,人物主体,15,single_person（单人），two_people（双人），multiple_people（多人），group_portrait（合影），selfie（自拍），half_body_portrait（半身像），full_body_portrait（全身像），id_photo（证件照），close_up_portrait（人像特写），lifestyle_portrait（生活照），parent_child_photo（亲子照），couple_photo（情侣照），family_group_photo（家庭合照），friends_group_photo（朋友合照），team_group_photo（团队合照）,,,,,,,,,,,,,,,,
+,宠物主体,8,pet_dog（宠物狗），pet_cat（宠物猫），pet_bird（宠物鸟），pet_rabbit（宠物兔），pet_hamster（宠物仓鼠），pet_turtle（宠物龟），pet_fish（宠物鱼），other_pet（其他宠物）,,,,,,,,,,,,,,,,
+,人宠共现,3,person_with_dog（人与狗），person_with_cat（人与猫），person_with_pet（人与宠物）,,,,,,,,,,,,,,,,

@@ -36,6 +36,7 @@ const L1_RENAME_MAP: Record<string, CategoryLevel> = {
   乐器与音响: { id: 'music_instruments', nameZh: '音乐与乐器', nameEn: 'Music & Instruments' },
   交通工具: { id: 'transportation', nameZh: '交通出行', nameEn: 'Transportation' },
   人物: { id: 'people', nameZh: '人像人物', nameEn: 'People' },
+  '人/宠物': { id: 'people_pets', nameZh: '人/宠物', nameEn: 'People & Pets' },
   体育与娱乐: { id: 'sports_leisure', nameZh: '运动娱乐', nameEn: 'Sports & Leisure' },
   办公与学习用品: { id: 'office_study', nameZh: '办公学习', nameEn: 'Office & Study' },
   动物: { id: 'animals', nameZh: '动物', nameEn: 'Animals' },
@@ -80,6 +81,14 @@ const L2_RENAME_MAP: Record<string, CategoryLevel> = {
   '交通工具|飞行与降落装备': { id: 'transportation_flight_gear', nameZh: '飞行装备', nameEn: 'Flight Gear' },
 
   '人物|人物': { id: 'people_people', nameZh: '人物', nameEn: 'People' },
+
+  '人/宠物|人物主体': { id: 'people_pets_people_subjects', nameZh: '人物主体', nameEn: 'People Subjects' },
+  '人/宠物|宠物主体': { id: 'people_pets_pet_subjects', nameZh: '宠物主体', nameEn: 'Pet Subjects' },
+  '人/宠物|人宠共现': {
+    id: 'people_pets_people_pet_copresence',
+    nameZh: '人宠共现',
+    nameEn: 'People & Pets Co-occurrence',
+  },
 
   '体育与娱乐|体育用品': { id: 'sports_leisure_sports_gear', nameZh: '运动器材', nameEn: 'Sports Gear' },
   '体育与娱乐|玩具与娱乐': {

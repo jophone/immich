@@ -1,17 +1,17 @@
 import {
-    getCategoryHierarchy,
-    getKnownRawCategoryNames,
-    getRawCategoriesByHierarchy,
-    isChineseLanguage,
-    shouldIncludeUnmappedCategories,
+  getCategoryHierarchy,
+  getKnownRawCategoryNames,
+  getRawCategoriesByHierarchy,
+  isChineseLanguage,
+  shouldIncludeUnmappedCategories,
 } from 'src/utils/category-taxonomy';
 import { describe, expect, it } from 'vitest';
 
 describe('getCategoryHierarchy', () => {
   it('should resolve known raw categories to L1/L2 hierarchy', () => {
-    const hierarchy = getCategoryHierarchy('tabby cat');
+    const hierarchy = getCategoryHierarchy('tabby');
 
-    expect(hierarchy.rawCategoryName).toBe('tabby_cat');
+    expect(hierarchy.rawCategoryName).toBe('tabby');
     expect(hierarchy.rawCategoryNameZh).toBe('虎斑猫');
     expect(hierarchy.l1).toEqual({ id: 'animals', nameZh: '动物', nameEn: 'Animals' });
     expect(hierarchy.l2).toEqual({ id: 'animals_domestic_cats', nameZh: '家猫', nameEn: 'Domestic Cats' });
@@ -23,6 +23,19 @@ describe('getCategoryHierarchy', () => {
     expect(hierarchy.l1).toEqual({ id: 'other', nameZh: '其他', nameEn: 'Other' });
     expect(hierarchy.l2).toEqual({ id: 'other_misc', nameZh: '未分类', nameEn: 'Uncategorized' });
   });
+
+  it('should resolve people_pets categories to the configured hierarchy', () => {
+    const hierarchy = getCategoryHierarchy('single person');
+
+    expect(hierarchy.rawCategoryName).toBe('single_person');
+    expect(hierarchy.rawCategoryNameZh).toBe('单人');
+    expect(hierarchy.l1).toEqual({ id: 'people_pets', nameZh: '人/宠物', nameEn: 'People & Pets' });
+    expect(hierarchy.l2).toEqual({
+      id: 'people_pets_people_subjects',
+      nameZh: '人物主体',
+      nameEn: 'People Subjects',
+    });
+  });
 });
 
 describe('getRawCategoriesByHierarchy', () => {
@@ -33,16 +46,14 @@ describe('getRawCategoriesByHierarchy', () => {
   it('should expand categoryL1 to raw categories', () => {
     const rawCategories = getRawCategoriesByHierarchy({ categoryL1: 'animals' });
 
-    expect(rawCategories).toContain('tabby_cat');
+    expect(rawCategories).toContain('tabby');
     expect(rawCategories).toContain('tiger');
   });
 
   it('should expand categoryL2 to raw categories', () => {
     const rawCategories = getRawCategoriesByHierarchy({ categoryL2: 'animals_domestic_cats' });
 
-    expect(rawCategories).toEqual(
-      expect.arrayContaining(['tabby_cat', 'tiger_cat', 'Persian_cat', 'Siamese_cat', 'Egyptian_cat']),
-    );
+    expect(rawCategories).toEqual(expect.arrayContaining(['tabby', 'tiger_cat', 'Persian_cat', 'Siamese_cat', 'Egyptian_cat']));
   });
 
   it('should return an empty array when categoryL1 and categoryL2 are incompatible', () => {
@@ -52,6 +63,12 @@ describe('getRawCategoriesByHierarchy', () => {
         categoryL2: 'transportation_cars',
       }),
     ).toEqual([]);
+  });
+
+  it('should expand people_pets hierarchy filters', () => {
+    const rawCategories = getRawCategoriesByHierarchy({ categoryL1: 'people_pets' });
+
+    expect(rawCategories).toEqual(expect.arrayContaining(['single_person', 'pet_dog', 'person_with_pet']));
   });
 });
 
@@ -90,7 +107,8 @@ describe('getKnownRawCategoryNames', () => {
   it('should expose known raw category names from taxonomy', () => {
     const knownCategories = getKnownRawCategoryNames();
 
-    expect(knownCategories).toContain('tabby_cat');
+    expect(knownCategories).toContain('tabby');
     expect(knownCategories).toContain('tiger');
+    expect(knownCategories).toContain('person_with_pet');
   });
 });
