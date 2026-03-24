@@ -10064,6 +10064,66 @@
         "x-immich-state": "Stable"
       }
     },
+    "/search/lite": {
+      "post": {
+        "description": "Search for assets by category using lightweight text embedding model.",
+        "operationId": "searchLite",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiteSearchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Lite category search",
+        "tags": [
+          "Search"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v1",
+            "state": "Added"
+          },
+          {
+            "version": "v1",
+            "state": "Beta"
+          },
+          {
+            "version": "v2",
+            "state": "Stable"
+          }
+        ],
+        "x-immich-permission": "asset.read",
+        "x-immich-state": "Stable"
+      }
+    },
     "/search/statistics": {
       "post": {
         "description": "Retrieve statistical data about assets based on search criteria, such as the total matching count.",
@@ -21672,6 +21732,10 @@
             "description": "Whether smart search is enabled",
             "type": "boolean"
           },
+          "liteSearch": {
+            "description": "Whether lightweight search is enabled",
+            "type": "boolean"
+          },
           "trash": {
             "description": "Whether trash feature is enabled",
             "type": "boolean"
@@ -21683,6 +21747,7 @@
           "email",
           "facialRecognition",
           "importFaces",
+          "liteSearch",
           "map",
           "oauth",
           "oauthAutoLaunch",
@@ -22362,6 +22427,36 @@
           "email",
           "name",
           "password"
+        ],
+        "type": "object"
+      },
+      "LiteSearchDto": {
+        "properties": {
+          "query": {
+            "description": "Natural language search query for category matching",
+            "type": "string"
+          },
+          "language": {
+            "description": "Search language code",
+            "type": "string"
+          },
+          "page": {
+            "description": "Page number",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "size": {
+            "description": "Number of results to return",
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/AssetVisibility"
+          }
+        },
+        "required": [
+          "query"
         ],
         "type": "object"
       },
