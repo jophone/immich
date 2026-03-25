@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { ArrayMinSize, IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+import { ArrayMinSize, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 import { ValidateBoolean } from 'src/validation';
 
 export class TaskConfig {
@@ -82,6 +82,23 @@ export class OcrConfig extends ModelConfig {
   minRecognitionScore!: number;
 }
 
+export class ClassificationDetectionConfig {
+  @ValidateBoolean({ description: 'Whether object detection is enabled for classification enrichment' })
+  enabled!: boolean;
+
+  @ApiProperty({ description: 'Name of the detection model to use' })
+  @IsString()
+  @IsNotEmpty()
+  modelName!: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  @Type(() => Number)
+  @ApiProperty({ type: 'number', format: 'double', description: 'Minimum confidence score for object detection' })
+  minScore!: number;
+}
+
 export class ClassificationConfig extends ModelConfig {
   @IsNumber()
   @Min(0)
@@ -101,4 +118,10 @@ export class ClassificationConfig extends ModelConfig {
   @IsNotEmpty({ each: true })
   @ApiProperty({ type: 'array', items: { type: 'string' }, minItems: 1 })
   categories!: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ClassificationDetectionConfig)
+  @ApiProperty({ type: ClassificationDetectionConfig, required: false })
+  detection?: ClassificationDetectionConfig;
 }

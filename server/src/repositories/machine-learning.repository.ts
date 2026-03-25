@@ -78,6 +78,14 @@ export type ClassificationResult = { categoryName: string; confidence: number };
 export type ClassificationResponse = { classification: ClassificationResult[] };
 export type ClassificationOptions = { modelName: string; minScore: number; maxResults: number; categories: string[] };
 
+export type ObjectDetectionResult = {
+  className: string;
+  confidence: number;
+  bbox: { x1: number; y1: number; x2: number; y2: number };
+};
+export type ObjectDetectionResponse = { detections: ObjectDetectionResult[] };
+export type ObjectDetectionOptions = { modelName: string; minScore: number };
+
 export type MachineLearningRequest = ClipVisualRequest | ClipTextualRequest | FacialRecognitionRequest | OcrRequest;
 export type TextEncodingOptions = ModelOptions & { language?: string };
 
@@ -250,6 +258,20 @@ export class MachineLearningRepository {
 
     const data = await this.postWithFailover<ClassificationResponse>('/classify', formData, 'classify');
     return data.classification;
+  }
+
+  async detectObjects(
+    imagePath: string,
+    { modelName, minScore }: ObjectDetectionOptions,
+  ): Promise<ObjectDetectionResult[]> {
+    const fileBuffer = await readFile(imagePath);
+    const formData = new FormData();
+    formData.append('image', new Blob([new Uint8Array(fileBuffer)]));
+    formData.append('model_name', modelName);
+    formData.append('min_score', String(minScore));
+
+    const data = await this.postWithFailover<ObjectDetectionResponse>('/detect', formData, 'detect');
+    return data.detections;
   }
 
   private async getFormData(payload: ModelPayload, config: MachineLearningRequest): Promise<FormData> {

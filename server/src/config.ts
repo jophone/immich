@@ -293,6 +293,11 @@ export const defaults = Object.freeze<SystemConfig>({
         'car', 'document', 'selfie', 'group photo', 'pet',
         'wedding', 'birthday', 'travel', 'art', 'abstract',
       ],
+      detection: {
+        enabled: true,
+        modelName: 'yolo11n',
+        minScore: 0.25,
+      },
     },
   },
   map: {

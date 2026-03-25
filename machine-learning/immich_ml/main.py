@@ -23,6 +23,7 @@ from starlette.formparsers import MultiPartParser
 from immich_ml.models import get_model_deps
 from immich_ml.models.base import InferenceModel
 from immich_ml.models.classification.yolo import YoloClassificationModel
+from immich_ml.models.detection.yolo_detect import YoloDetectionModel
 from immich_ml.models.transforms import decode_pil
 
 from .config import PreloadModelData, clean_name, log, settings
@@ -53,6 +54,7 @@ SOFTMAX_TEMPERATURE = 100.0
 
 model_cache = ModelCache(revalidate=settings.model_ttl > 0)
 classification_model_cache: dict[str, YoloClassificationModel] = {}
+detection_model_cache: dict[str, YoloDetectionModel] = {}
 thread_pool: ThreadPoolExecutor | None = None
 lock = threading.Lock()
 active_requests = 0
@@ -85,6 +87,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
         for model in model_cache.cache._cache.values():
             del model
         classification_model_cache.clear()
+        detection_model_cache.clear()
         if thread_pool is not None:
             thread_pool.shutdown()
         gc.collect()
@@ -227,6 +230,37 @@ async def classify(
     results.sort(key=lambda x: x["confidence"], reverse=True)
 
     return ORJSONResponse({"classification": results[:max_results]})
+
+
+@app.post("/detect", dependencies=[Depends(update_state)])
+async def detect(
+    image: bytes = File(),
+    model_name: str = Form(default="yolo11n"),
+    min_score: float = Form(default=0.25),
+) -> Any:
+    pil_image = await run(lambda: decode_pil(image))
+    detector = _get_detection_model(model_name)
+    await run(detector.load)
+    detections = await run(detector.predict, pil_image)
+
+    results = [
+        {
+            "className": d.class_name,
+            "confidence": round(d.confidence, 4),
+            "bbox": {"x1": d.bbox[0], "y1": d.bbox[1], "x2": d.bbox[2], "y2": d.bbox[3]},
+        }
+        for d in detections
+        if d.confidence >= min_score
+    ]
+    return ORJSONResponse({"detections": results})
+
+
+def _get_detection_model(model_name: str) -> YoloDetectionModel:
+    cache_key = clean_name(model_name)
+    with lock:
+        if cache_key not in detection_model_cache:
+            detection_model_cache[cache_key] = YoloDetectionModel(model_name)
+        return detection_model_cache[cache_key]
 
 
 def _parse_categories(categories: str | None) -> list[str]:
