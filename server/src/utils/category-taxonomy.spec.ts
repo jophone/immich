@@ -24,16 +24,16 @@ describe('getCategoryHierarchy', () => {
     expect(hierarchy.l2).toEqual({ id: 'other_misc', nameZh: '未分类', nameEn: 'Uncategorized' });
   });
 
-  it('should resolve people_pets categories to the configured hierarchy', () => {
+  it('should resolve portrait categories to the configured hierarchy', () => {
     const hierarchy = getCategoryHierarchy('single person');
 
     expect(hierarchy.rawCategoryName).toBe('single_person');
     expect(hierarchy.rawCategoryNameZh).toBe('单人');
-    expect(hierarchy.l1).toEqual({ id: 'people_pets', nameZh: '人/宠物', nameEn: 'People & Pets' });
+    expect(hierarchy.l1).toEqual({ id: 'portrait', nameZh: '人像照', nameEn: 'Portrait' });
     expect(hierarchy.l2).toEqual({
-      id: 'people_pets_people_subjects',
-      nameZh: '人物主体',
-      nameEn: 'People Subjects',
+      id: 'portrait_single_person',
+      nameZh: '单人',
+      nameEn: 'Single Person',
     });
   });
 });
@@ -65,10 +65,22 @@ describe('getRawCategoriesByHierarchy', () => {
     ).toEqual([]);
   });
 
-  it('should expand people_pets hierarchy filters', () => {
-    const rawCategories = getRawCategoriesByHierarchy({ categoryL1: 'people_pets' });
+  it('should expand portrait hierarchy filters', () => {
+    const rawCategories = getRawCategoriesByHierarchy({ categoryL1: 'portrait' });
 
-    expect(rawCategories).toEqual(expect.arrayContaining(['single_person', 'pet_dog', 'person_with_pet']));
+    expect(rawCategories).toEqual(expect.arrayContaining(['single_person', 'two_people', 'multiple_people']));
+  });
+
+  it('should expand pet_photos hierarchy filters', () => {
+    const rawCategories = getRawCategoriesByHierarchy({ categoryL1: 'pet_photos' });
+
+    expect(rawCategories).toEqual(expect.arrayContaining(['pet_dog', 'pet_cat', 'pet_bird']));
+  });
+
+  it('should expand people_with_pets hierarchy filters', () => {
+    const rawCategories = getRawCategoriesByHierarchy({ categoryL1: 'people_with_pets' });
+
+    expect(rawCategories).toEqual(expect.arrayContaining(['person_with_dog', 'person_with_cat', 'person_with_pet']));
   });
 });
 
