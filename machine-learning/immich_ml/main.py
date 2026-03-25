@@ -235,7 +235,7 @@ async def classify(
 @app.post("/detect", dependencies=[Depends(update_state)])
 async def detect(
     image: bytes = File(),
-    model_name: str = Form(default="yolo11n"),
+    model_name: str = Form(default="yolov8l"),
     min_score: float = Form(default=0.25),
 ) -> Any:
     pil_image = await run(lambda: decode_pil(image))

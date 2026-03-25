@@ -207,3 +207,11 @@ When using `pnpm --filter`:
 - `@immich/cli` = cli
 - `@immich/sdk` = open-api/typescript-sdk
 - `immich-e2e` = e2e
+
+## Test Credentials (Fixed for Local Debugging)
+
+> ⚠️ For use only in the current local development environment (`127.0.0.1:2283`). Do not use in production.
+
+- `Base URL`: `http://127.0.0.1:2283/api`
+- `Admin Email`: `1714797574@qq.com`
+- `Admin Password`: `TempPass123`

@@ -17682,6 +17682,9 @@
             "minItems": 1,
             "type": "array"
           },
+          "detection": {
+            "$ref": "#/components/schemas/ClassificationDetectionConfig"
+          },
           "enabled": {
             "description": "Whether the task is enabled",
             "type": "boolean"
@@ -17707,6 +17710,31 @@
           "categories",
           "enabled",
           "maxResults",
+          "minScore",
+          "modelName"
+        ],
+        "type": "object"
+      },
+      "ClassificationDetectionConfig": {
+        "properties": {
+          "enabled": {
+            "description": "Whether object detection is enabled for classification enrichment",
+            "type": "boolean"
+          },
+          "minScore": {
+            "description": "Minimum confidence score for object detection",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "modelName": {
+            "description": "Name of the detection model to use",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
           "minScore",
           "modelName"
         ],

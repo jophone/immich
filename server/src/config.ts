@@ -87,6 +87,11 @@ export type SystemConfig = {
       minScore: number;
       maxResults: number;
       categories: string[];
+      detection?: {
+        enabled: boolean;
+        modelName: string;
+        minScore: number;
+      };
     };
   };
   map: {
@@ -295,7 +300,7 @@ export const defaults = Object.freeze<SystemConfig>({
       ],
       detection: {
         enabled: true,
-        modelName: 'yolo11n',
+        modelName: 'yolov8l',
         minScore: 0.25,
       },
     },

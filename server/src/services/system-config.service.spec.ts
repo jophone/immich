@@ -118,6 +118,11 @@ const updatedConfig = Object.freeze<SystemConfig>({
       modelName: 'YOLO26l-cls',
       minScore: 0.15,
       maxResults: 5,
+      detection: {
+        enabled: true,
+        modelName: 'yolo11n',
+        minScore: 0.25,
+      },
       categories: [
         'landscape', 'portrait', 'food', 'animal', 'architecture',
         'beach', 'night', 'city', 'nature', 'sport',
