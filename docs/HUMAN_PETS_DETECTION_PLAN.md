@@ -2,7 +2,7 @@
 
 ## Context
 
-"人/宠物" 大类已在 `ImageNet_Taxonomy.csv` 中定义了 26 个 L3 标签（人物主体 15、宠物主体 8、人宠共现 3），但 YOLO26l-cls **分类模型**只能对整张图做分类，无法计数人或物体。需要引入 YOLO **检测模型**来获取目标边界框和类别，再通过后处理映射到正确的 L3 标签。
+三个独立大类（**人像照** 15 个子类、**宠物照** 8 个子类、**人与宠物** 3 个子类）已在 `ImageNet_Taxonomy.csv` 中各自定义了对应的 L2 子类及 26 个原始标签（`single_person`、`pet_dog`、`person_with_dog` 等），但 YOLO26l-cls **分类模型**只能对整张图做分类，无法计数人或物体。需要引入 YOLO **检测模型**来获取目标边界框和类别，再通过后处理映射到正确的原始标签。
 
 由于分类模型不包含"人"相关的标签，无法基于分类结果判断是否需要运行检测，因此检测对**每张图片无条件执行**。
 
@@ -495,7 +495,7 @@ class ClassificationDetectionConfig {
 
 1. **ML 服务单元测试**：用一张含多人+狗的测试图，验证 `/detect` 返回正确的检测数量和类别
 2. **NMS 适配测试**：分别用需要 NMS 和免 NMS 的模型验证 `_is_end2end_output` 判断正确
-3. **Server 单元测试**：mock ML 检测结果，验证后处理输出正确的 L3 标签
+3. **Server 单元测试**：mock ML 检测结果，验证后处理输出正确的原始标签
    - `pnpm --filter immich run test -- --run src/services/classification.service.spec.ts`
 4. **集成测试**：上传含人/宠物照片，确认 `asset_categories` 表出现 `single_person`/`pet_dog` 等标签
-5. **Web 验证**：Explore → "人/宠物" → 应展示正确的 L2 分组和资产
+5. **Web 验证**：Explore → 「人像照」/「宠物照」/「人与宠物」 → 应展示正确的 L2 分组和资产
