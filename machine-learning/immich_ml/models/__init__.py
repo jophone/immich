@@ -1,8 +1,8 @@
 from typing import Any
 
 from immich_ml.models.base import InferenceModel
-from immich_ml.models.clip.textual import MClipTextualEncoder, OpenClipTextualEncoder
-from immich_ml.models.clip.visual import OpenClipVisualEncoder
+from immich_ml.models.clip.textual import ChineseClipTextualEncoder, MClipTextualEncoder, OpenClipTextualEncoder
+from immich_ml.models.clip.visual import ChineseClipVisualEncoder, OpenClipVisualEncoder
 from immich_ml.models.ocr.detection import TextDetector
 from immich_ml.models.ocr.recognition import TextRecognizer
 from immich_ml.schemas import ModelSource, ModelTask, ModelType
@@ -15,6 +15,12 @@ from .facial_recognition.recognition import FaceRecognizer
 def get_model_class(model_name: str, model_type: ModelType, model_task: ModelTask) -> type[InferenceModel]:
     source = get_model_source(model_name)
     match source, model_type, model_task:
+        case ModelSource.CHINESE_CLIP, ModelType.VISUAL, ModelTask.SEARCH:
+            return ChineseClipVisualEncoder
+
+        case ModelSource.CHINESE_CLIP, ModelType.TEXTUAL, ModelTask.SEARCH:
+            return ChineseClipTextualEncoder
+
         case ModelSource.OPENCLIP | ModelSource.MCLIP, ModelType.VISUAL, ModelTask.SEARCH:
             return OpenClipVisualEncoder
 

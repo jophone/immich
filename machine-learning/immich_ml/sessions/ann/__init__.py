@@ -46,7 +46,7 @@ class AnnSession:
     def run(
         self,
         output_names: list[str] | None,
-        input_feed: dict[str, NDArray[np.float32]] | dict[str, NDArray[np.int32]],
+        input_feed: dict[str, NDArray[np.float32]] | dict[str, NDArray[np.int32]] | dict[str, NDArray[np.int64]],
         run_options: Any = None,
     ) -> list[NDArray[np.float32]]:
         inputs: list[NDArray[np.float32]] = [np.ascontiguousarray(v) for v in input_feed.values()]

@@ -65,6 +65,7 @@ export const FACE_THUMBNAIL_SIZE = 250;
 
 type ModelInfo = { dimSize: number };
 export const CLIP_MODEL_INFO: Record<string, ModelInfo> = {
+  'chinese_clip_ViT-B-16': { dimSize: 512 },
   RN101__openai: { dimSize: 512 },
   RN101__yfcc15m: { dimSize: 512 },
   'ViT-B-16__laion400m_e31': { dimSize: 512 },

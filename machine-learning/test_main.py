@@ -23,8 +23,8 @@ from immich_ml.main import load, preload_models
 from immich_ml.models.base import InferenceModel
 from immich_ml.models.cache import ModelCache
 from immich_ml.models.classification.yolo import YoloClassificationModel, _to_probabilities
-from immich_ml.models.clip.textual import MClipTextualEncoder, OpenClipTextualEncoder
-from immich_ml.models.clip.visual import OpenClipVisualEncoder
+from immich_ml.models.clip.textual import ChineseClipTextualEncoder, MClipTextualEncoder, OpenClipTextualEncoder
+from immich_ml.models.clip.visual import ChineseClipVisualEncoder, OpenClipVisualEncoder
 from immich_ml.models.facial_recognition.detection import FaceDetector
 from immich_ml.models.facial_recognition.recognition import FaceRecognizer
 from immich_ml.models.ocr.detection import TextDetector
@@ -706,6 +706,24 @@ class TestCLIP:
         assert np.allclose(tokens["input_ids"], np.array([mock_ids], dtype=np.int32), atol=0)
         assert np.allclose(tokens["attention_mask"], np.array([mock_attention_mask], dtype=np.int32), atol=0)
 
+    def test_chinese_clip_tokenizer_returns_int64(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(ChineseClipTextualEncoder, "download")
+        mocker.patch.object(InferenceModel, "_make_session", autospec=True).return_value
+        mock_tokenizer = mocker.patch(
+            "immich_ml.models.clip.textual.Tokenizer.from_pretrained", autospec=True
+        ).return_value
+        mock_tokenizer.token_to_id.return_value = 0
+        mock_tokenizer.encode.return_value = SimpleNamespace(ids=[randint(0, 50000) for _ in range(52)])
+
+        clip_encoder = ChineseClipTextualEncoder("chinese_clip_ViT-B-16", cache_dir="test_cache")
+        clip_encoder._load()
+        tokens = clip_encoder.tokenize("皮卡丘")
+
+        assert "text" in tokens
+        assert isinstance(tokens["text"], np.ndarray)
+        assert tokens["text"].shape == (1, 52)
+        assert tokens["text"].dtype == np.int64
+
 
 class TestClassification:
     def test_yolo_classifier_predict(self, pil_image: Image.Image, tmp_path: Path, mocker: MockerFixture) -> None:
@@ -1188,6 +1206,22 @@ class TestCache:
 
         assert isinstance(model, MClipTextualEncoder)
         assert model.model_name == "XLM-Roberta-Large-Vit-B-32"
+
+    async def test_loads_chinese_clip_textual(self) -> None:
+        model_cache = ModelCache()
+
+        model = await model_cache.get("chinese_clip_ViT-B-16", ModelType.TEXTUAL, ModelTask.SEARCH)
+
+        assert isinstance(model, ChineseClipTextualEncoder)
+        assert model.model_name == "chinese_clip_ViT-B-16"
+
+    async def test_loads_chinese_clip_visual(self) -> None:
+        model_cache = ModelCache()
+
+        model = await model_cache.get("chinese_clip_ViT-B-16", ModelType.VISUAL, ModelTask.SEARCH)
+
+        assert isinstance(model, ChineseClipVisualEncoder)
+        assert model.model_name == "chinese_clip_ViT-B-16"
 
     async def test_raises_exception_if_invalid_model_type(self) -> None:
         invalid: Any = SimpleNamespace(value="invalid")

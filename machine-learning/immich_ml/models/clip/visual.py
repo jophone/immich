@@ -2,6 +2,7 @@ import json
 from abc import abstractmethod
 from functools import cached_property
 from pathlib import Path
+from shutil import copyfile
 from typing import Any
 
 import numpy as np
@@ -19,7 +20,7 @@ from immich_ml.models.transforms import (
     serialize_np_array,
     to_numpy,
 )
-from immich_ml.schemas import ModelSession, ModelTask, ModelType
+from immich_ml.schemas import ModelFormat, ModelSession, ModelTask, ModelType
 
 
 class BaseCLIPVisualEncoder(InferenceModel):
@@ -75,3 +76,57 @@ class OpenClipVisualEncoder(BaseCLIPVisualEncoder):
         image_np = to_numpy(image)
         image_np = normalize(image_np, self.mean, self.std)
         return {"image": np.expand_dims(image_np.transpose(2, 0, 1), 0)}
+
+
+class ChineseClipVisualEncoder(BaseCLIPVisualEncoder):
+    _DEPLOY_MODEL_NAME = "vit-B-16.img.fp16.onnx"
+    _DEFAULT_PREPROCESS_CFG: dict[str, Any] = {
+        "size": [224, 224],
+        "interpolation": "bicubic",
+        "mean": [0.48145466, 0.4578275, 0.40821073],
+        "std": [0.26862954, 0.26130258, 0.27577711],
+    }
+
+    def model_path_for_format(self, model_format: ModelFormat) -> Path:
+        if model_format == ModelFormat.ONNX:
+            deploy_model_path = self.model_dir / "deploy" / self._DEPLOY_MODEL_NAME
+            if deploy_model_path.is_file():
+                return deploy_model_path
+        return super().model_path_for_format(model_format)
+
+    def _load(self) -> ModelSession:
+        self._ensure_onnx_extra_file_alias()
+
+        preprocess_cfg: dict[str, Any] = self._DEFAULT_PREPROCESS_CFG
+        if self.preprocess_cfg_path.is_file():
+            preprocess_cfg = self.preprocess_cfg
+
+        size: list[int] | int = preprocess_cfg.get("size", [224, 224])
+        self.size = size[0] if isinstance(size, list) else size
+        self.resampling = get_pil_resampling(str(preprocess_cfg.get("interpolation", "bicubic")))
+        self.mean = np.array(preprocess_cfg.get("mean", self._DEFAULT_PREPROCESS_CFG["mean"]), dtype=np.float32)
+        self.std = np.array(preprocess_cfg.get("std", self._DEFAULT_PREPROCESS_CFG["std"]), dtype=np.float32)
+
+        return InferenceModel._load(self)
+
+    def transform(self, image: Image.Image) -> dict[str, NDArray[np.float32]]:
+        image = resize_pil(image, self.size)
+        image = crop_pil(image, self.size)
+        image_np = to_numpy(image)
+        image_np = normalize(image_np, self.mean, self.std)
+        return {"image": np.expand_dims(image_np.transpose(2, 0, 1), 0)}
+
+    def _ensure_onnx_extra_file_alias(self) -> None:
+        if self.model_format != ModelFormat.ONNX:
+            return
+
+        extra_file = self.model_path.with_name(f"{self.model_path.name}.extra_file")
+        if not extra_file.is_file() or extra_file.name[:1].isupper():
+            return
+
+        alias_file = extra_file.with_name(extra_file.name[:1].upper() + extra_file.name[1:])
+        if alias_file.is_file():
+            return
+
+        copyfile(extra_file, alias_file)
+        log.info("Created ONNX extra_file alias for Chinese-CLIP model at %s", alias_file)

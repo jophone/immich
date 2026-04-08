@@ -67,6 +67,11 @@ _MCLIP_MODELS = {
 }
 
 
+_CHINESE_CLIP_MODELS = {
+    "chinese_clip_ViT-B-16",
+}
+
+
 _INSIGHTFACE_MODELS = {
     "antelopev2",
     "buffalo_s",
@@ -162,6 +167,9 @@ WEBLATE_TO_FLORES200 = {
 
 def get_model_source(model_name: str) -> ModelSource | None:
     cleaned_name = clean_name(model_name)
+
+    if cleaned_name in _CHINESE_CLIP_MODELS:
+        return ModelSource.CHINESE_CLIP
 
     if cleaned_name in _INSIGHTFACE_MODELS:
         return ModelSource.INSIGHTFACE

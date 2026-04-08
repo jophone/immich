@@ -2,6 +2,7 @@ import json
 from abc import abstractmethod
 from functools import cached_property
 from pathlib import Path
+from shutil import copyfile
 from typing import Any
 
 import numpy as np
@@ -12,7 +13,10 @@ from immich_ml.config import log
 from immich_ml.models.base import InferenceModel
 from immich_ml.models.constants import WEBLATE_TO_FLORES200
 from immich_ml.models.transforms import clean_text, serialize_np_array
-from immich_ml.schemas import ModelSession, ModelTask, ModelType
+from immich_ml.schemas import ModelFormat, ModelSession, ModelTask, ModelType
+
+
+TokenInput = dict[str, NDArray[np.int32]] | dict[str, NDArray[np.int64]]
 
 
 class BaseCLIPTextualEncoder(InferenceModel):
@@ -20,7 +24,7 @@ class BaseCLIPTextualEncoder(InferenceModel):
     identity = (ModelType.TEXTUAL, ModelTask.SEARCH)
 
     def _predict(self, inputs: str, language: str | None = None) -> str:
-        tokens = self.tokenize(inputs, language=language)
+        tokens: TokenInput = self.tokenize(inputs, language=language)
         res: NDArray[np.float32] = self.session.run(None, tokens)[0][0]
         return serialize_np_array(res)
 
@@ -40,7 +44,7 @@ class BaseCLIPTextualEncoder(InferenceModel):
         pass
 
     @abstractmethod
-    def tokenize(self, text: str, language: str | None = None) -> dict[str, NDArray[np.int32]]:
+    def tokenize(self, text: str, language: str | None = None) -> TokenInput:
         pass
 
     @property
@@ -118,3 +122,80 @@ class MClipTextualEncoder(OpenClipTextualEncoder):
             "input_ids": np.array([tokens.ids], dtype=np.int32),
             "attention_mask": np.array([tokens.attention_mask], dtype=np.int32),
         }
+
+
+class ChineseClipTextualEncoder(BaseCLIPTextualEncoder):
+    _DEFAULT_TOKENIZER_NAME = "hfl/chinese-roberta-wwm-ext"
+    _DEFAULT_CONTEXT_LENGTH = 52
+    _DEFAULT_PAD_TOKEN = "[PAD]"
+    _DEPLOY_MODEL_NAME = "vit-B-16.txt.fp16.onnx"
+
+    def model_path_for_format(self, model_format: ModelFormat) -> Path:
+        if model_format == ModelFormat.ONNX:
+            deploy_model_path = self.model_dir / "deploy" / self._DEPLOY_MODEL_NAME
+            if deploy_model_path.is_file():
+                return deploy_model_path
+        return super().model_path_for_format(model_format)
+
+    def _load(self) -> ModelSession:
+        self._ensure_onnx_extra_file_alias()
+        session = InferenceModel._load(self)
+        log.debug(f"Loading tokenizer for CLIP model '{self.model_name}'")
+        self.tokenizer = self._load_tokenizer()
+        self.canonicalize = False
+        self.is_nllb = False
+        log.debug(f"Loaded tokenizer for CLIP model '{self.model_name}'")
+        return session
+
+    def _load_tokenizer(self) -> Tokenizer:
+        tokenizer_name = self.text_cfg.get("tokenizer_name", self._DEFAULT_TOKENIZER_NAME)
+        context_length = int(self.text_cfg.get("context_length", self._DEFAULT_CONTEXT_LENGTH))
+        pad_token = self.text_cfg.get("pad_token", self._DEFAULT_PAD_TOKEN)
+
+        if self.tokenizer_file_path.is_file():
+            tokenizer: Tokenizer = Tokenizer.from_file(self.tokenizer_file_path.as_posix())
+        else:
+            tokenizer = Tokenizer.from_pretrained(tokenizer_name)
+
+        pad_id = tokenizer.token_to_id(pad_token)
+        if pad_id is None:
+            pad_id = 0
+            pad_token = ""
+
+        tokenizer.enable_padding(length=context_length, pad_token=pad_token, pad_id=pad_id)
+        tokenizer.enable_truncation(max_length=context_length)
+        return tokenizer
+
+    def tokenize(self, text: str, language: str | None = None) -> dict[str, NDArray[np.int64]]:
+        text = clean_text(text)
+        tokens: Encoding = self.tokenizer.encode(text)
+        return {"text": np.array([tokens.ids], dtype=np.int64)}
+
+    @property
+    def model_cfg_path(self) -> Path:
+        return self.cache_dir / "config.json"
+
+    @property
+    def text_cfg(self) -> dict[str, Any]:
+        if self.model_cfg_path.is_file():
+            return self.model_cfg.get("text_cfg", {})
+        return {
+            "context_length": self._DEFAULT_CONTEXT_LENGTH,
+            "tokenizer_name": self._DEFAULT_TOKENIZER_NAME,
+            "pad_token": self._DEFAULT_PAD_TOKEN,
+        }
+
+    def _ensure_onnx_extra_file_alias(self) -> None:
+        if self.model_format != ModelFormat.ONNX:
+            return
+
+        extra_file = self.model_path.with_name(f"{self.model_path.name}.extra_file")
+        if not extra_file.is_file() or extra_file.name[:1].isupper():
+            return
+
+        alias_file = extra_file.with_name(extra_file.name[:1].upper() + extra_file.name[1:])
+        if alias_file.is_file():
+            return
+
+        copyfile(extra_file, alias_file)
+        log.info("Created ONNX extra_file alias for Chinese-CLIP model at %s", alias_file)

@@ -40,6 +40,7 @@ class ModelFormat(StrEnum):
 
 
 class ModelSource(StrEnum):
+    CHINESE_CLIP = "chinese-clip"
     INSIGHTFACE = "insightface"
     MCLIP = "mclip"
     OPENCLIP = "openclip"
@@ -66,7 +67,11 @@ class ModelSession(Protocol):
     def run(
         self,
         output_names: list[str] | None,
-        input_feed: dict[str, npt.NDArray[np.float32]] | dict[str, npt.NDArray[np.int32]],
+        input_feed: (
+            dict[str, npt.NDArray[np.float32]]
+            | dict[str, npt.NDArray[np.int32]]
+            | dict[str, npt.NDArray[np.int64]]
+        ),
         run_options: Any = None,
     ) -> list[npt.NDArray[np.float32]]: ...
 
