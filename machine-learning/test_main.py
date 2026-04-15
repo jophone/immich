@@ -18,8 +18,8 @@ from PIL import Image
 from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
-from immich_ml.config import MaxBatchSize, Settings, settings
-from immich_ml.main import load, preload_models
+from immich_ml.config import ClipSettings, DefaultModelData, MaxBatchSize, PreloadModelData, Settings, settings
+from immich_ml.main import get_entries, load, preload_models
 from immich_ml.models.base import InferenceModel
 from immich_ml.models.cache import ModelCache
 from immich_ml.models.classification.yolo import YoloClassificationModel, _to_probabilities
@@ -799,6 +799,34 @@ class TestClassification:
         assert response.status_code == 200
         assert response.json() == {"classification": [{"categoryName": "portrait", "confidence": 0.91}]}
 
+    def test_classify_endpoint_uses_default_model_name(
+        self,
+        deployed_app: TestClient,
+        pil_image: Image.Image,
+        mocker: MockerFixture,
+    ) -> None:
+        async def mock_scores(model_name: str, image: Image.Image) -> dict[str, float]:
+            assert model_name == "YOLO26l-cls"
+            assert image.size == pil_image.size
+            return {"portrait": 0.91}
+
+        mocker.patch("immich_ml.main._get_classification_scores", side_effect=mock_scores)
+        image_bytes = BytesIO()
+        pil_image.save(image_bytes, format="JPEG")
+
+        response = deployed_app.post(
+            "/classify",
+            files={"image": ("test.jpg", image_bytes.getvalue(), "image/jpeg")},
+            data={
+                "categories": json.dumps(["landscape", "portrait", "food"]),
+                "min_score": "0.5",
+                "max_results": "5",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {"classification": [{"categoryName": "portrait", "confidence": 0.91}]}
+
     def test_classify_endpoint_yolo_ignores_categories(
         self,
         deployed_app: TestClient,
@@ -1223,6 +1251,28 @@ class TestCache:
         assert isinstance(model, ChineseClipVisualEncoder)
         assert model.model_name == "chinese_clip_ViT-B-16"
 
+    async def test_loads_chinese_clip_rn50_fp16(self) -> None:
+        model_cache = ModelCache()
+
+        textual_model = await model_cache.get("chinese_clip_rn50_fp16", ModelType.TEXTUAL, ModelTask.SEARCH)
+        visual_model = await model_cache.get("chinese_clip_rn50_fp16", ModelType.VISUAL, ModelTask.SEARCH)
+
+        assert isinstance(textual_model, ChineseClipTextualEncoder)
+        assert textual_model.model_name == "chinese_clip_rn50_fp16"
+        assert isinstance(visual_model, ChineseClipVisualEncoder)
+        assert visual_model.model_name == "chinese_clip_rn50_fp16"
+
+    async def test_loads_chinese_clip_rn50_fp32(self) -> None:
+        model_cache = ModelCache()
+
+        textual_model = await model_cache.get("chinese_clip_rn50_fp32", ModelType.TEXTUAL, ModelTask.SEARCH)
+        visual_model = await model_cache.get("chinese_clip_rn50_fp32", ModelType.VISUAL, ModelTask.SEARCH)
+
+        assert isinstance(textual_model, ChineseClipTextualEncoder)
+        assert textual_model.model_name == "chinese_clip_rn50_fp32"
+        assert isinstance(visual_model, ChineseClipVisualEncoder)
+        assert visual_model.model_name == "chinese_clip_rn50_fp32"
+
     async def test_raises_exception_if_invalid_model_type(self) -> None:
         invalid: Any = SimpleNamespace(value="invalid")
         model_cache = ModelCache()
@@ -1420,6 +1470,59 @@ def test_ping_endpoint(deployed_app: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.text == "pong"
+
+
+def test_models_endpoint_returns_default_models(deployed_app: TestClient) -> None:
+    response = deployed_app.get("http://localhost:3003/models")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "defaults": {
+            "clip": {"textual": "ViT-B-32__openai", "visual": "ViT-B-32__openai"},
+            "facial-recognition": {"detection": "buffalo_l", "recognition": "buffalo_l"},
+            "ocr": {"detection": "PP-OCRv5_mobile", "recognition": "PP-OCRv5_mobile"},
+            "classification": "YOLO26l-cls",
+            "detection": "yolov8l",
+        }
+    }
+
+
+def test_predict_entries_use_default_model_when_model_name_is_missing(mocker: MockerFixture) -> None:
+    mocker.patch.object(settings, "default", DefaultModelData())
+    mocker.patch.object(settings, "preload", None)
+
+    without_deps, with_deps = get_entries(json.dumps({"clip": {"textual": {}}}))
+
+    assert with_deps == []
+    assert without_deps == [
+        {
+            "name": "ViT-B-32__openai",
+            "task": "clip",
+            "type": "textual",
+            "options": {},
+        }
+    ]
+
+
+def test_predict_entries_prefer_first_preloaded_model_when_model_name_is_missing(mocker: MockerFixture) -> None:
+    mocker.patch.object(settings, "default", DefaultModelData())
+    mocker.patch.object(
+        settings,
+        "preload",
+        PreloadModelData(clip=ClipSettings(textual="ViT-B-16-SigLIP2__webli,ViT-B-32__openai")),
+    )
+
+    without_deps, with_deps = get_entries(json.dumps({"clip": {"textual": {"options": {"language": "zh"}}}}))
+
+    assert with_deps == []
+    assert without_deps == [
+        {
+            "name": "ViT-B-16-SigLIP2__webli",
+            "task": "clip",
+            "type": "textual",
+            "options": {"language": "zh"},
+        }
+    ]
 
 
 @pytest.mark.skipif(

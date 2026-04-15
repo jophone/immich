@@ -69,6 +69,8 @@ _MCLIP_MODELS = {
 
 _CHINESE_CLIP_MODELS = {
     "chinese_clip_ViT-B-16",
+    "chinese_clip_rn50_fp16",
+    "chinese_clip_rn50_fp32",
 }
 
 

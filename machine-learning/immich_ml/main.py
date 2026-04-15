@@ -26,7 +26,18 @@ from immich_ml.models.classification.yolo import YoloClassificationModel
 from immich_ml.models.detection.yolo_detect import YoloDetectionModel
 from immich_ml.models.transforms import decode_pil
 
-from .config import PreloadModelData, clean_name, log, settings
+from .config import (
+    DEFAULT_CLASSIFICATION_MODEL,
+    DEFAULT_CLIP_MODEL,
+    DEFAULT_DETECTION_MODEL,
+    DEFAULT_FACIAL_RECOGNITION_MODEL,
+    DEFAULT_OCR_MODEL,
+    PreloadModelData,
+    clean_name,
+    first_model_name,
+    log,
+    settings,
+)
 from .models.cache import ModelCache
 from .schemas import (
     InferenceEntries,
@@ -168,16 +179,20 @@ def get_entries(entries: str = Form()) -> InferenceEntries:
         with_deps: list[InferenceEntry] = []
         for task, types in request.items():
             for type, entry in types.items():
+                options = entry.get("options", {})
+                if not isinstance(options, dict):
+                    raise ValueError("Entry options must be an object.")
+
                 parsed: InferenceEntry = {
-                    "name": entry["modelName"],
+                    "name": entry.get("modelName") or get_default_predict_model(task, type),
                     "task": task,
                     "type": type,
-                    "options": entry.get("options", {}),
+                    "options": options,
                 }
                 dep = get_model_deps(parsed["name"], type, task)
                 (with_deps if dep else without_deps).append(parsed)
         return without_deps, with_deps
-    except (orjson.JSONDecodeError, ValidationError, KeyError, AttributeError) as e:
+    except (orjson.JSONDecodeError, ValidationError, KeyError, AttributeError, ValueError) as e:
         log.error(f"Invalid request format: {e}")
         raise HTTPException(422, "Invalid request format.")
 
@@ -193,6 +208,30 @@ async def root() -> ORJSONResponse:
 @app.get("/ping")
 def ping() -> PlainTextResponse:
     return PlainTextResponse("pong")
+
+
+@app.get("/models")
+async def models() -> ORJSONResponse:
+    return ORJSONResponse(
+        {
+            "defaults": {
+                "clip": {
+                    "textual": get_default_predict_model(ModelTask.SEARCH, ModelType.TEXTUAL),
+                    "visual": get_default_predict_model(ModelTask.SEARCH, ModelType.VISUAL),
+                },
+                "facial-recognition": {
+                    "detection": get_default_predict_model(ModelTask.FACIAL_RECOGNITION, ModelType.DETECTION),
+                    "recognition": get_default_predict_model(ModelTask.FACIAL_RECOGNITION, ModelType.RECOGNITION),
+                },
+                "ocr": {
+                    "detection": get_default_predict_model(ModelTask.OCR, ModelType.DETECTION),
+                    "recognition": get_default_predict_model(ModelTask.OCR, ModelType.RECOGNITION),
+                },
+                "classification": get_default_classification_model(),
+                "detection": get_default_detection_model(),
+            }
+        }
+    )
 
 
 @app.post("/predict", dependencies=[Depends(update_state)])
@@ -214,11 +253,12 @@ async def predict(
 @app.post("/classify", dependencies=[Depends(update_state)])
 async def classify(
     image: bytes = File(),
-    model_name: str = Form(default="YOLO26l-cls"),
+    model_name: str | None = Form(default=None),
     categories: str | None = Form(default=None),
     min_score: float = Form(default=0.1),
     max_results: int = Form(default=5),
 ) -> Any:
+    model_name = model_name or get_default_classification_model()
     category_list = _parse_categories(categories)
 
     pil_image = await run(lambda: decode_pil(image))
@@ -235,9 +275,10 @@ async def classify(
 @app.post("/detect", dependencies=[Depends(update_state)])
 async def detect(
     image: bytes = File(),
-    model_name: str = Form(default="yolov8l"),
+    model_name: str | None = Form(default=None),
     min_score: float = Form(default=0.25),
 ) -> Any:
+    model_name = model_name or get_default_detection_model()
     pil_image = await run(lambda: decode_pil(image))
     detector = _get_detection_model(model_name)
     await run(detector.load)
@@ -261,6 +302,56 @@ def _get_detection_model(model_name: str) -> YoloDetectionModel:
         if cache_key not in detection_model_cache:
             detection_model_cache[cache_key] = YoloDetectionModel(model_name)
         return detection_model_cache[cache_key]
+
+
+def get_default_predict_model(task: ModelTask | str, model_type: ModelType | str) -> str:
+    preload = settings.preload
+    if task == ModelTask.SEARCH and model_type == ModelType.TEXTUAL:
+        return (
+            settings.default.clip.textual
+            or first_model_name(preload.clip.textual if preload else None)
+            or DEFAULT_CLIP_MODEL
+        )
+    if task == ModelTask.SEARCH and model_type == ModelType.VISUAL:
+        return (
+            settings.default.clip.visual
+            or first_model_name(preload.clip.visual if preload else None)
+            or DEFAULT_CLIP_MODEL
+        )
+    if task == ModelTask.FACIAL_RECOGNITION and model_type == ModelType.DETECTION:
+        return (
+            settings.default.facial_recognition.detection
+            or first_model_name(preload.facial_recognition.detection if preload else None)
+            or DEFAULT_FACIAL_RECOGNITION_MODEL
+        )
+    if task == ModelTask.FACIAL_RECOGNITION and model_type == ModelType.RECOGNITION:
+        return (
+            settings.default.facial_recognition.recognition
+            or first_model_name(preload.facial_recognition.recognition if preload else None)
+            or DEFAULT_FACIAL_RECOGNITION_MODEL
+        )
+    if task == ModelTask.OCR and model_type == ModelType.DETECTION:
+        return (
+            settings.default.ocr.detection
+            or first_model_name(preload.ocr.detection if preload else None)
+            or DEFAULT_OCR_MODEL
+        )
+    if task == ModelTask.OCR and model_type == ModelType.RECOGNITION:
+        return (
+            settings.default.ocr.recognition
+            or first_model_name(preload.ocr.recognition if preload else None)
+            or DEFAULT_OCR_MODEL
+        )
+
+    raise KeyError(f"No default model for task '{task}' and type '{model_type}'")
+
+
+def get_default_classification_model() -> str:
+    return settings.default.classification or DEFAULT_CLASSIFICATION_MODEL
+
+
+def get_default_detection_model() -> str:
+    return settings.default.detection or DEFAULT_DETECTION_MODEL
 
 
 def _parse_categories(categories: str | None) -> list[str]:

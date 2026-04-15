@@ -15,6 +15,12 @@ from uvicorn.workers import UvicornWorker
 
 from .schemas import ModelPrecision
 
+DEFAULT_CLIP_MODEL = "chinese_clip_ViT-B-16"
+DEFAULT_FACIAL_RECOGNITION_MODEL = "buffalo_l"
+DEFAULT_OCR_MODEL = "PP-OCRv5_mobile"
+DEFAULT_CLASSIFICATION_MODEL = "YOLO26l-cls"
+DEFAULT_DETECTION_MODEL = "yolov8l"
+
 
 class ClipSettings(BaseModel):
     textual: str | None = None
@@ -45,6 +51,14 @@ class PreloadModelData(BaseModel):
     clip: ClipSettings = ClipSettings()
     facial_recognition: FacialRecognitionSettings = FacialRecognitionSettings()
     ocr: OcrSettings = OcrSettings()
+
+
+class DefaultModelData(BaseModel):
+    clip: ClipSettings = ClipSettings()
+    facial_recognition: FacialRecognitionSettings = FacialRecognitionSettings()
+    ocr: OcrSettings = OcrSettings()
+    classification: str | None = None
+    detection: str | None = None
 
 
 class MaxBatchSize(BaseModel):
@@ -80,6 +94,7 @@ class Settings(BaseSettings):
     rknn: bool = True
     rknn_threads: int = 1
     preload: PreloadModelData | None = None
+    default: DefaultModelData = DefaultModelData()
     max_batch_size: MaxBatchSize | None = None
     openvino_precision: ModelPrecision = ModelPrecision.FP32
     rocm_precision: ModelPrecision = ModelPrecision.FP32
@@ -103,6 +118,13 @@ _clean_name = str.maketrans(":\\/", "___", ".")
 
 def clean_name(model_name: str) -> str:
     return model_name.split("/")[-1].translate(_clean_name)
+
+
+def first_model_name(model_names: str | None) -> str | None:
+    if model_names is None:
+        return None
+
+    return next((model_name.strip() for model_name in model_names.split(",") if model_name.strip()), None)
 
 
 LOG_LEVELS: dict[str, int] = {

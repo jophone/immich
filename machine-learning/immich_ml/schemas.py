@@ -3,7 +3,7 @@ from typing import Any, Literal, Protocol, TypeGuard, TypeVar
 
 import numpy as np
 import numpy.typing as npt
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 
 class StrEnum(str, Enum):
@@ -100,8 +100,8 @@ FacialRecognitionOutput = list[DetectedFace]
 
 
 class PipelineEntry(TypedDict):
-    modelName: str
-    options: dict[str, Any]
+    modelName: NotRequired[str]
+    options: NotRequired[dict[str, Any]]
 
 
 PipelineRequest = dict[ModelTask, dict[ModelType, PipelineEntry]]

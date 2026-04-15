@@ -226,6 +226,42 @@ Immich 机器学习服务支持用环境变量在启动时预下载模型到缓�
 
 多个模型用英文逗号分隔。
 
+### 1.1.1 外部相册项目如何避免关心模型名
+
+当前算法服务支持“请求不传模型名”。外部相册项目调用 `/predict` 时可以省略 `entries.*.*.modelName`，调用 `/classify`、`/detect` 时也可以省略 `model_name`。算法服务会按以下优先级自动选择模型：
+
+1. 显式默认模型环境变量：`MACHINE_LEARNING_DEFAULT__...`
+2. 对应预加载列表里的第一个模型
+3. Immich 内置默认值
+
+例如你预加载：
+
+```dotenv
+MACHINE_LEARNING_PRELOAD__CLIP__TEXTUAL=ViT-B-16-SigLIP2__webli,ViT-B-32__openai
+MACHINE_LEARNING_PRELOAD__CLIP__VISUAL=ViT-B-16-SigLIP2__webli,ViT-B-32__openai
+```
+
+如果调用方不传 `modelName`，默认会使用第一个 `ViT-B-16-SigLIP2__webli`。
+
+如果你想预加载多个模型，但对外固定另一个默认模型，可以额外设置：
+
+```dotenv
+MACHINE_LEARNING_DEFAULT__CLIP__TEXTUAL=ViT-B-32__openai
+MACHINE_LEARNING_DEFAULT__CLIP__VISUAL=ViT-B-32__openai
+MACHINE_LEARNING_DEFAULT__FACIAL_RECOGNITION__DETECTION=buffalo_l
+MACHINE_LEARNING_DEFAULT__FACIAL_RECOGNITION__RECOGNITION=buffalo_l
+MACHINE_LEARNING_DEFAULT__OCR__DETECTION=PP-OCRv5_mobile
+MACHINE_LEARNING_DEFAULT__OCR__RECOGNITION=PP-OCRv5_mobile
+MACHINE_LEARNING_DEFAULT__CLASSIFICATION=YOLO26l-cls
+MACHINE_LEARNING_DEFAULT__DETECTION=yolov8l
+```
+
+可用下面的接口检查算法服务当前对外默认值：
+
+```bash
+curl -s http://127.0.0.1:3003/models
+```
+
 ### 1.2 本地启动（`scripts/local-dev.sh`）
 
 一次性预加载示例：
@@ -402,4 +438,3 @@ volumes:
 - Docker：写进 `docker/.env` 后每次重启都会生效
 
 ---
-

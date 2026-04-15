@@ -253,6 +253,8 @@ describe(SmartInfoService.name, () => {
     it('should return the model info', () => {
       expect(getCLIPModelInfo('ViT-B-32__openai')).toEqual({ dimSize: 512 });
       expect(getCLIPModelInfo('chinese_clip_ViT-B-16')).toEqual({ dimSize: 512 });
+      expect(getCLIPModelInfo('chinese_clip_rn50_fp16')).toEqual({ dimSize: 1024 });
+      expect(getCLIPModelInfo('chinese_clip_rn50_fp32')).toEqual({ dimSize: 1024 });
       expect(getCLIPModelInfo('M-CLIP/XLM-Roberta-Large-Vit-L-14')).toEqual({ dimSize: 768 });
     });
 

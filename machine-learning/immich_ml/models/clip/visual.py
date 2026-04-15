@@ -80,6 +80,9 @@ class OpenClipVisualEncoder(BaseCLIPVisualEncoder):
 
 class ChineseClipVisualEncoder(BaseCLIPVisualEncoder):
     _DEPLOY_MODEL_NAME = "vit-B-16.img.fp16.onnx"
+    _RN50_FP16_MODEL_NAME = "chinese_clip_rn50_fp16"
+    _RN50_FP32_FALLBACK = "chinese_clip_rn50_fp32"
+    _RN50_FP32_ONNX = "rn50.img.fp32.onnx"
     _DEFAULT_PREPROCESS_CFG: dict[str, Any] = {
         "size": [224, 224],
         "interpolation": "bicubic",
@@ -89,9 +92,27 @@ class ChineseClipVisualEncoder(BaseCLIPVisualEncoder):
 
     def model_path_for_format(self, model_format: ModelFormat) -> Path:
         if model_format == ModelFormat.ONNX:
+            if self.model_name == self._RN50_FP16_MODEL_NAME:
+                fp32_fallback_path = self.cache_dir.parent / self._RN50_FP32_FALLBACK / self.model_type.value / self._RN50_FP32_ONNX
+                if fp32_fallback_path.is_file():
+                    log.warning(
+                        "Model '%s' ONNX is incompatible with ORT, using '%s' weights as fallback",
+                        self._RN50_FP16_MODEL_NAME,
+                        self._RN50_FP32_FALLBACK,
+                    )
+                    return fp32_fallback_path
+
             deploy_model_path = self.model_dir / "deploy" / self._DEPLOY_MODEL_NAME
             if deploy_model_path.is_file():
                 return deploy_model_path
+
+            deploy_onnx = sorted((self.model_dir / "deploy").glob("*.onnx"))
+            if deploy_onnx:
+                return deploy_onnx[0]
+
+            flat_onnx = sorted(self.model_dir.glob("*.onnx"))
+            if flat_onnx:
+                return flat_onnx[0]
         return super().model_path_for_format(model_format)
 
     def _load(self) -> ModelSession:
